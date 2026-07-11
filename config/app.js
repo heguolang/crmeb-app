@@ -8,7 +8,7 @@
 // | Author: CRMEB Team <admin@crmeb.com>
 // +----------------------------------------------------------------------
 //移动端商城API
-let domain = 'http://47.120.18.0:20410'
+let domain = 'http://127.0.0.1:8081'
 // let domain = 'https://apif.java.crmeb.net'
 
 module.exports = {
@@ -17,8 +17,9 @@ module.exports = {
 		// HTTP_REQUEST_URL:'',
 		HTTP_REQUEST_URL: domain,
 		// H5商城地址
-		HTTP_H5_URL: 'http://47.120.18.0:20410',
+		HTTP_H5_URL: 'http://127.0.0.1:8081',
 	// #endif
+		HTTP_H5_URL: 'http://127.0.0.1:8080',
 	// #ifdef H5
 		HTTP_REQUEST_URL:domain,
 	// #endif

@@ -26,16 +26,6 @@
 										<view class='num font_color' v-if="child.status == -1">+{{child.extractPrice}}
 										</view>
 										<view class='num' v-else>-{{child.extractPrice}}</view>
-										<!-- <view>
-											<view class='name line1'>{{child.status === -1 ? '提现失败' : '提现成功'}}<span
-													v-show="child.status === -1"
-													style="font-size: 12px;color: red;">{{'('+child.failMsg+')'}}</span>
-											</view>
-											<view>{{child.createTime}}</view>
-										</view>
-										<view class='num font-color' v-if="child.status == -1">+{{child.extractPrice}}
-										</view>
-										<view class='num' v-else>-{{child.extractPrice}}</view> -->
 									</view>
 								</block>
 							</view>
@@ -54,9 +44,20 @@
 							<view class='listn borRadius14'>
 								<block v-for="(child,indexn) in item.list" :key="indexn">
 									<view class='itemn acea-row row-between-wrapper'>
-										<view>
-											<view class='name line1'>{{child.title}}</view>
-											<view>{{child.updateTime}}</view>
+										<view class="record-main">
+											<view class='name line1 acea-row row-middle'>
+												<text
+													v-if="getBrokerageLevelLabel(child.brokerageLevel)"
+													class="brokerage-tag"
+													:class="getBrokerageLevelClass(child.brokerageLevel)"
+												>{{ getBrokerageLevelLabel(child.brokerageLevel) }}</text>
+												<text class="record-title">{{ child.title }}</text>
+											</view>
+											<view class="record-mark" v-if="recordType == 5 && child.mark">{{ child.mark }}</view>
+											<view class="record-time">
+												{{ child.updateTime }}
+												<text v-if="recordType == 5 && getStatusLabel(child.status)" class="status-text"> · {{ getStatusLabel(child.status) }}</text>
+											</view>
 										</view>
 										<view class='num font_color' v-if="child.type == 1">+{{child.price}}
 										</view>
@@ -68,7 +69,7 @@
 					</view>
 				</block>
 				<view v-if="recordList.length == 0">
-					<emptyPage title='暂无佣金记录~'></emptyPage>
+					<emptyPage :title="recordType == 5 ? '暂无团队奖记录~' : '暂无佣金记录~'"></emptyPage>
 				</view>
 			</view>
 		</view>
@@ -79,6 +80,8 @@
 	import {
 		getCommissionInfo,
 		getRecordApi,
+		getTeamCommissionInfo,
+		getTeamCommissionTotal,
 	} from '@/api/user.js';
 	import {
 		toLogin
@@ -88,6 +91,7 @@
 	} from "vuex";
 	import emptyPage from '@/components/emptyPage.vue'
 	import {setThemeColor} from '@/utils/setTheme.js'
+	import { getBrokerageLevelLabel, getBrokerageLevelClass } from '@/utils/brokerage.js'
 	const app = getApp();
 	export default {
 		components: {
@@ -123,7 +127,7 @@
 			if (this.isLogin) {
 				this.type = options.type;
 				this.extractCount = options.extractCount;
-				this.commissionCount = options.commissionCount;
+				this.commissionCount = options.commissionCount || 0;
 			} else {
 				toLogin();
 			}
@@ -136,6 +140,9 @@
 		},
 		onShow: function() {
 			let type = this.type;
+			this.page = 1;
+			this.statuss = false;
+			this.recordList = [];
 			if (type == 1) {
 				uni.setNavigationBarTitle({
 					title: "提现记录"
@@ -150,6 +157,14 @@
 				this.name = '佣金明细';
 				this.recordType = 3;
 				this.getRecordList();
+			} else if (type == 3) {
+				uni.setNavigationBarTitle({
+					title: "团队奖记录"
+				});
+				this.name = '团队奖累计';
+				this.recordType = 5;
+				this.loadTeamTotal();
+				this.getTeamRecordList();
 			} else {
 				uni.showToast({
 					title: '参数错误',
@@ -174,6 +189,22 @@
 
 		},
 		methods: {
+			getBrokerageLevelLabel,
+			getBrokerageLevelClass,
+			getStatusLabel(status) {
+				const map = {
+					1: '待入账',
+					2: '冻结中',
+					3: '已到账',
+					4: '已失效'
+				};
+				return map[status] || '';
+			},
+			loadTeamTotal() {
+				getTeamCommissionTotal().then(res => {
+					this.commissionCount = (res.data && res.data.count) != null ? res.data.count : 0;
+				}).catch(() => {});
+			},
 			getList: function() {
 				let that = this;
 				let recordList = that.recordList;
@@ -196,7 +227,6 @@
 				let page = that.page;
 				let limit = that.limit;
 				let statuss = that.statuss;
-				let recordType = that.recordType;
 				let recordList = that.recordList;
 				let recordListNew = [];
 				if (statuss == true) return;
@@ -213,10 +243,33 @@
 						that.$set(that, 'recordList', recordListNew);
 					}
 				});
+			},
+			getTeamRecordList: function() {
+				let that = this;
+				if (that.statuss == true) return;
+				getTeamCommissionInfo({
+					page: that.page,
+					limit: that.limit
+				}).then(res => {
+					if (res.data && res.data.list) {
+						let len = res.data.list.length;
+						that.recordList = that.recordList.concat(res.data.list);
+						that.statuss = that.limit > len;
+						that.page = that.page + 1;
+					} else {
+						that.statuss = true;
+					}
+				});
 			}
 		},
 		onReachBottom: function() {
-			this.getRecordList();
+			if (this.recordType == 5) {
+				this.getTeamRecordList();
+			} else if (this.recordType == 3) {
+				this.getRecordList();
+			} else if (this.recordType == 4) {
+				this.getList();
+			}
 		}
 	}
 </script>
@@ -234,4 +287,49 @@
 	.font_color{
 		color: #E93323 !important;
 	}
+	.record-main {
+		flex: 1;
+		min-width: 0;
+		padding-right: 20rpx;
+	}
+	.name {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+	}
+	.record-title {
+		flex: 1;
+		min-width: 0;
+	}
+	.record-mark {
+		margin-top: 6rpx;
+		font-size: 22rpx;
+		color: #999;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.record-time {
+		margin-top: 8rpx;
+		font-size: 24rpx;
+		color: #999;
+	}
+	.status-text {
+		color: #666;
+	}
+	.brokerage-tag {
+		display: inline-block;
+		margin-right: 12rpx;
+		padding: 2rpx 12rpx;
+		border-radius: 6rpx;
+		font-size: 20rpx;
+		line-height: 28rpx;
+		color: #fff;
+		flex-shrink: 0;
+	}
+	.tag-self { background: #909399; }
+	.tag-one { background: #409eff; }
+	.tag-two { background: #67c23a; }
+	.tag-team-diff { background: #e6a23c; }
+	.tag-team-peer { background: #f56c6c; }
 </style>

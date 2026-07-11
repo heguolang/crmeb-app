@@ -40,6 +40,10 @@
 					<text class='iconfont icon-qiandai'></text>
 					<view>佣金明细</view>
 				</navigator>
+				<navigator url='/pages/promoter/user_spread_money/index?type=3' hover-class="none" class='item acea-row row-center-wrapper row-column'>
+					<text class='iconfont icon-tuandui'></text>
+					<view>团队奖记录</view>
+				</navigator>
 				<navigator url='/pages/promoter/promoter-order/index' hover-class="none" class='item acea-row row-center-wrapper row-column'>
 					<text class='iconfont icon-dingdan'></text>
 					<view>推广人订单</view>

@@ -136,6 +136,20 @@ export function getCommissionInfo(data) {
 }
 
 /*
+ * 团队奖资金明细
+ * */
+export function getTeamCommissionInfo(data) {
+  return request.get("spread/team/commission/detail", data);
+}
+
+/*
+ * 累计团队奖金额
+ * */
+export function getTeamCommissionTotal() {
+  return request.get("spread/team/commission/total");
+}
+
+/*
  * 提现记录 getCountApi
  * */
 export function getRecordApi(q) {
