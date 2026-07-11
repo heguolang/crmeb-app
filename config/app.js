@@ -7,21 +7,22 @@
 // +----------------------------------------------------------------------
 // | Author: CRMEB Team <admin@crmeb.com>
 // +----------------------------------------------------------------------
-//移动端商城API
-let domain = 'http://127.0.0.1:8081'
-// let domain = 'https://apif.java.crmeb.net'
+//移动端商城API（必须是 crmeb-front 接口域名，不是 H5 页面域名）
+//let domain = 'http://127.0.0.1:8081'
+// 服务器需把 /api/front 反代到 front(8081)，/api/admin 反代到 admin(8080)
+let domain = 'http://java.qianxutec.cn'
 
 module.exports = {
 	// 请求域名 格式： https://您的域名
 	// #ifdef MP || APP-PLUS
 		// HTTP_REQUEST_URL:'',
 		HTTP_REQUEST_URL: domain,
-		// H5商城地址
-		HTTP_H5_URL: 'http://127.0.0.1:8081',
+		// H5商城页面地址（给用户打开的网址）
+		HTTP_H5_URL: 'http://java.qianxutec.cn',
 	// #endif
-		HTTP_H5_URL: 'http://127.0.0.1:8080',
+		HTTP_H5_URL: 'http://java.qianxutec.cn',
 	// #ifdef H5
-		HTTP_REQUEST_URL:domain,
+		HTTP_REQUEST_URL: domain,
 	// #endif
 	HEADER:{
 		'content-type': 'application/json'
