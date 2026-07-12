@@ -3,6 +3,7 @@
 		<div class="shading">
 			<image :src="mobileLoginLogo"/>
 		</div>
+		<!-- 登录 -->
 		<div class="whiteBg" v-if="formItem === 1">
 			<div class="list" v-if="current !== 1">
 				<form @submit.prevent="submit">
@@ -46,12 +47,13 @@
 			</div>
 			<div class="logon bg_color" @click="loginMobile" v-if="current !== 0">登录</div>
 			<div class="logon bg_color" @click="submit" v-if="current === 0">登录</div>
-			<!-- #ifndef APP-PLUS -->
 			<div class="tips">
+				<div @click="switchRegister">没有账号？去注册</div>
+				<!-- #ifndef APP-PLUS -->
 				<div v-if="current==0" @click="current = 1">快速登录</div>
 				<div v-if="current==1" @click="current = 0">账号登录</div>
+				<!-- #endif -->
 			</div>
-			<!-- #endif -->
 			<!-- #ifdef APP-PLUS -->
 			<view class="appLogin" v-if="!appLoginStatus && !appleLoginStatus">
 				<view class="hds">
@@ -69,12 +71,45 @@
 					<view class="btn yanzheng" v-if="current == 0" @click="current =1">
 						<span class="iconfont icon-s-yanzhengmadenglu1"></span>
 					</view>
-					<!-- <view class="btn apple-btn" @click="appleLogin" v-if="appleShow">
-						<view class="iconfont icon-s-pingguo"></view>
-					</view> -->
 				</view>
 			</view>
 			<!-- #endif -->
+		</div>
+		<!-- 注册 -->
+		<div class="whiteBg" v-else>
+			<div class="list">
+				<div class="item">
+					<div class="acea-row row-middle">
+						<image :src="urlDomain+'crmebimage/perset/staticImg/phone_1.png'" style="width: 24rpx; height: 34rpx;"></image>
+						<input type="number" class="texts" placeholder="输入手机号码" v-model="account" maxlength="11"/>
+					</div>
+				</div>
+				<div class="item">
+					<div class="acea-row row-middle">
+						<image :src="urlDomain+'crmebimage/perset/staticImg/code_2.png'" style="width: 28rpx; height: 32rpx;"></image>
+						<input type="number" placeholder="填写验证码" class="codeIput" v-model="captcha" maxlength="6" />
+						<button class="code main_color" :disabled="disabled" :class="disabled === true ? 'on' : ''" @click="code">
+							{{ text }}
+						</button>
+					</div>
+				</div>
+				<div class="item">
+					<div class="acea-row row-middle">
+						<image :src="urlDomain+'crmebimage/perset/staticImg/code_2.png'" style="width: 28rpx; height: 32rpx;"></image>
+						<input type="password" class="texts" placeholder="设置登录密码(6-16位字母数字组合)" maxlength="16" v-model="password"/>
+					</div>
+				</div>
+				<div class="item">
+					<div class="acea-row row-middle">
+						<image :src="urlDomain+'crmebimage/perset/staticImg/code_2.png'" style="width: 28rpx; height: 32rpx;"></image>
+						<input type="password" class="texts" placeholder="再次确认密码" maxlength="16" v-model="confirmPassword"/>
+					</div>
+				</div>
+			</div>
+			<div class="logon bg_color" @click="register">注册并登录</div>
+			<div class="tips">
+				<div @click="switchLogin">已有账号？去登录</div>
+			</div>
 		</div>
 		<div class="bottom"></div>
 		<Verify @success="handlerOnVerSuccess" :captchaType="'clickWord'" :imgSize="{ width: '330px', height: '155px' }"
@@ -103,6 +138,7 @@
 	import {
 		goToAgreement
 	} from "@/libs/order";
+	import { toLoginBack } from '@/libs/login.js';
 	const BACK_URL = "login_back_url";
 
 	export default {
@@ -118,6 +154,7 @@
 				current: 1,
 				account: "",
 				password: "",
+				confirmPassword: "",
 				captcha: "",
 				formItem: 1,
 				type: "login",
@@ -186,6 +223,23 @@
 			},
 			userAgree(type) {
 				goToAgreement(type)
+			},
+			switchRegister() {
+				this.formItem = 2;
+				this.type = 'register';
+				this.account = '';
+				this.password = '';
+				this.confirmPassword = '';
+				this.captcha = '';
+			},
+			switchLogin() {
+				this.formItem = 1;
+				this.type = 'login';
+				this.current = 0;
+				this.account = '';
+				this.password = '';
+				this.confirmPassword = '';
+				this.captcha = '';
 			},
 			// 苹果登录
 			// appleLogin() {
@@ -379,22 +433,32 @@
 					title: '请填写密码'
 				});
 				if (!/^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,16}$/i.test(that.password)) return that.$util.Tips({
-					title: '您输入的密码过于简单'
+					title: '密码须为6-16位字母数字组合'
+				});
+				if (that.password !== that.confirmPassword) return that.$util.Tips({
+					title: '两次密码输入不一致'
+				});
+				uni.showLoading({
+					title: '注册中'
 				});
 				register({
 						account: that.account,
 						captcha: that.captcha,
 						password: that.password,
-						spread_spid: that.$Cache.get("spread")
-						// spread_spid: uni.getStorageSync('spid') || 0
+						spread_spid: that.$Cache.get("spread") || 0
 					})
 					.then(res => {
-						that.$util.Tips({
-							title: res
+						uni.hideLoading();
+						that.$store.commit("LOGIN", {
+							'token': res.data.token
 						});
-						that.formItem = 1;
+						that.$util.Tips({
+							title: '注册成功'
+						});
+						that.getUserInfo(res.data);
 					})
 					.catch(res => {
+						uni.hideLoading();
 						that.$util.Tips({
 							title: res
 						});
@@ -420,7 +484,7 @@
 				if (!that.account) return that.$util.Tips({
 					title: '请填写账号'
 				});
-				if (!/^[\w\d]{5,16}$/i.test(that.account)) return that.$util.Tips({
+				if (!/^1\d{10}$/i.test(that.account) && !/^[\w\d]{5,16}$/i.test(that.account)) return that.$util.Tips({
 					title: '请输入正确的账号'
 				});
 				if (!that.password) return that.$util.Tips({
@@ -448,16 +512,19 @@
 					});
 			}),
 			getUserInfo(data){
-				this.$store.commit("SETUID", data.uid); 
+				this.$store.commit("SETUID", data.uid);
+				const backUrl = this.$Cache.get(BACK_URL) || "/pages/index/index";
 				getUserInfo().then(res => {
 					this.$store.commit("UPDATE_USERINFO", res.data);
-					let backUrl = this.$Cache.get(BACK_URL) || "/pages/index/index";
-					if (backUrl.indexOf('/pages/users/login/index') !== -1) { 
-						backUrl = '/pages/index/index';
-					}
-					uni.reLaunch({
-						url: backUrl
+					uni.showToast({
+						title: '登录成功',
+						icon: 'success'
 					});
+					setTimeout(() => {
+						toLoginBack(backUrl);
+					}, 500);
+				}).catch(() => {
+					toLoginBack(backUrl);
 				})
 			},
 		}
@@ -643,8 +710,14 @@
 	
 			.tips {
 				margin: 30rpx;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				flex-wrap: wrap;
+				gap: 30rpx;
 				text-align: center;
 				color: #999;
+				font-size: 26rpx;
 			}
 		}
 	}

@@ -19,10 +19,82 @@ import auth from './wechat';
 
 import { LOGIN_STATUS, USER_INFO, EXPIRES_TIME, STATE_R_KEY, BACK_URL} from './../config/cache';
 
+const TAB_PAGES = [
+	'/pages/index/index',
+	'/pages/goods_cate/goods_cate',
+	'/pages/order_addcart/order_addcart',
+	'/pages/user/index'
+];
+
+const LOGIN_PAGES = [
+	'/pages/users/login/index',
+	'/pages/users/wechat_login/index',
+	'/pages/users/app_login/index'
+];
+
 function prePage(){
 	let pages = getCurrentPages();
-	let prePage = pages[pages.length - 1];
-	return prePage.$page.fullPath;
+	let page = pages[pages.length - 1];
+	if (!page) return '';
+	// #ifdef APP-PLUS
+	if (page.$page && page.$page.fullPath) {
+		return page.$page.fullPath;
+	}
+	// #endif
+	let route = page.route || page.__route__ || '';
+	if (route && route.indexOf('/') !== 0) {
+		route = '/' + route;
+	}
+	return route;
+}
+
+/**
+ * 规范化登录回跳地址
+ */
+export function resolveLoginBackUrl(backUrl) {
+	let url = backUrl;
+	if (!url || url === 'undefined' || url === 'null' || typeof url !== 'string') {
+		url = '/pages/index/index';
+	}
+	if (url.indexOf('http') === 0) {
+		url = '/pages/index/index';
+	}
+	if (url.indexOf('/') !== 0) {
+		url = '/' + url;
+	}
+	const pathOnly = url.split('?')[0];
+	if (LOGIN_PAGES.indexOf(pathOnly) !== -1) {
+		url = '/pages/index/index';
+	}
+	const finalPath = url.split('?')[0];
+	if (TAB_PAGES.indexOf(finalPath) !== -1) {
+		return finalPath;
+	}
+	return url;
+}
+
+/**
+ * 登录/注册成功后跳转
+ */
+export function toLoginBack(backUrl) {
+	const url = resolveLoginBackUrl(backUrl || Cache.get(BACK_URL));
+	Cache.clear(BACK_URL);
+	const pathOnly = url.split('?')[0];
+	if (TAB_PAGES.indexOf(pathOnly) !== -1) {
+		uni.switchTab({
+			url: pathOnly,
+			fail: () => {
+				uni.reLaunch({ url: '/pages/index/index' });
+			}
+		});
+		return;
+	}
+	uni.reLaunch({
+		url: url,
+		fail: () => {
+			uni.switchTab({ url: '/pages/index/index' });
+		}
+	});
 }
 
 export const toLogin = Debounce(_toLogin,800)
@@ -35,12 +107,14 @@ export function _toLogin(push, pathLogin) {
 	let path = prePage();
 	let login_back_url = Cache.get(BACK_URL);
 	// #ifdef H5
-	path = location.href;
 	path = location.pathname + location.search;
 	// #endif
-	if(!pathLogin){
-		pathLogin = '/page/users/login/index'
-		Cache.set(BACK_URL,path);
+	if (!pathLogin) {
+		pathLogin = '/pages/users/login/index'
+	}
+	const pathOnly = (path || '').split('?')[0];
+	if (path && path !== pathLogin && LOGIN_PAGES.indexOf(pathOnly) === -1) {
+		Cache.set(BACK_URL, path);
 	}
 		
 	// #ifdef H5
