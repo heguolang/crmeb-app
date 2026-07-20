@@ -170,6 +170,19 @@
 					}
 				},
 				{
+					"path": "user_voucher/index",
+					"style": {
+						"navigationBarTitleText": "消费券权证",
+						"app-plus": {
+							// #ifdef APP-PLUS
+							"titleNView": {
+								"type": "default"
+							}
+							// #endif
+						}
+					}
+				},
+				{
 					"path": "user_coupon/index",
 					"style": {
 						"navigationBarTitleText": "我的优惠券",

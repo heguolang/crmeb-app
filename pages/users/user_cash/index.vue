@@ -34,13 +34,16 @@
 						</view>
 						<view class='item acea-row row-between-wrapper'>
 							<view class='name'>提现</view>
-							<view class='input'><input :placeholder='"最低提现金额"+minPrice' placeholder-class='placeholder' name="money" type='digit'></input></view>
+							<view class='input'><input :placeholder='"最低提现金额"+minPrice' placeholder-class='placeholder' name="money" type='digit' @input="onMoneyInput"></input></view>
 						</view>
 						<view class='tip'>
 							当前可提现金额: <text class="price">￥{{commission.commissionCount}},</text>冻结佣金：￥{{commission.brokenCommission}}
 						</view>
+						<view class='tip' v-if="Number(extractFee) > 0">
+							手续费：<text class="price">￥{{extractFee}}</text>，预计实到：<text class="price">￥{{arrivePrice}}</text>
+						</view>
 						<view class='tip'>
-							说明: 每笔佣金的冻结期为{{commission.brokenDay}}天，到期后可提现
+							说明: 每笔佣金的冻结期为{{commission.brokenDay}}天，到期后可提现；提现金额需大于手续费
 						</view>
 						<button formType="submit" class='bnt bg-color'>提现</button>
 					</form>
@@ -56,7 +59,7 @@
 						<view class='item acea-row row-between-wrapper'>
 							<view class='name'>提现</view>
 							<view class='input'>
-								<input :placeholder='"最低提现金额"+minPrice' placeholder-class='placeholder' name="money" type='digit' maxlength="5"></input>
+								<input :placeholder='"最低提现金额"+minPrice' placeholder-class='placeholder' name="money" type='digit' maxlength="8" @input="onMoneyInput"></input>
 							</view>
 						</view>
 						<view class='item acea-row row-top row-between'>
@@ -75,8 +78,11 @@
 						<view class='tip'>
 							当前可提现金额: <text class="price">￥{{commission.commissionCount}},</text>冻结佣金：￥{{commission.brokenCommission}}
 						</view>
+						<view class='tip' v-if="Number(extractFee) > 0">
+							手续费：<text class="price">￥{{extractFee}}</text>，预计实到：<text class="price">￥{{arrivePrice}}</text>
+						</view>
 						<view class='tip'>
-							说明: 每笔佣金的冻结期为{{commission.brokenDay}}天，到期后可提现
+							说明: 每笔佣金的冻结期为{{commission.brokenDay}}天，到期后可提现；提现金额需大于手续费
 						</view>
 						<button formType="submit" class='bnt bg-color'>提现</button>
 					</form>
@@ -116,6 +122,8 @@
 				index: 0,
 				array: [], //提现银行
 				minPrice: 0.00, //最低提现金额
+				extractFee: 0, //手续费
+				inputMoney: '',
 				userInfo: [],
 				isClone: false,
 				commission:{},
@@ -125,7 +133,15 @@
 				theme:app.globalData.theme,
 			};
 		},
-		computed: mapGetters(['isLogin']),
+		computed: {
+			...mapGetters(['isLogin']),
+			arrivePrice() {
+				const money = parseFloat(this.inputMoney) || 0;
+				const fee = parseFloat(this.extractFee) || 0;
+				const arrive = money - fee;
+				return arrive > 0 ? arrive.toFixed(2) : '0.00';
+			}
+		},
 		watch:{
 			isLogin:{
 				handler:function(newV,oldV){
@@ -146,6 +162,10 @@
 			}
 		},
 		methods: {
+			onMoneyInput(e) {
+				const val = e.detail.value;
+				this.inputMoney = (val && val.match(/^\d*(\.?\d{0,2})/g) && val.match(/^\d*(\.?\d{0,2})/g)[0]) || '';
+			},
 			uploadpic: function (type) {
 			  let that = this;
 			  that.$util.uploadImageOne({
@@ -175,6 +195,7 @@
 				extractUser().then(res=>{
 					this.commission = res.data;
 					this.minPrice = res.data.minPrice;
+					this.extractFee = res.data.extractFee || 0;
 				})
 			},
 			getUserExtractBank: function() {
@@ -229,8 +250,11 @@
 					if (!(/^(\d?)+(\.\d{0,2})?$/.test(value.money))) return this.$util.Tips({
 						title: '提现金额保留2位小数'
 					});
-					if (value.money < that.minPrice) return this.$util.Tips({
+					if (Number(value.money) < Number(that.minPrice)) return this.$util.Tips({
 						title: '提现金额不能低于' + that.minPrice
+					});
+					if (Number(value.money) <= Number(that.extractFee || 0)) return this.$util.Tips({
+						title: '提现金额必须大于手续费' + that.extractFee
 					});
 					if(this.isCommitted==false){
 						  this.isCommitted=true;

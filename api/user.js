@@ -468,6 +468,55 @@ export function postIntegralUser() {
 }
 
 /*
+ * 消费券权证资产
+ * */
+export function getVoucherAsset() {
+  return request.get("voucher/asset");
+}
+
+/*
+ * 积分兑换消费券
+ * */
+export function integralToVoucherApi(data) {
+  return request.post("voucher/integral/to/voucher", data);
+}
+
+/*
+ * 消费券兑换余额
+ * */
+export function voucherToBalanceApi(data) {
+  return request.post("voucher/to/balance", data);
+}
+
+/*
+ * 兑换权证
+ * */
+export function exchangeWarrantApi(data) {
+  return request.post("voucher/to/warrant", data);
+}
+
+/*
+ * 绑定权证第三方地址
+ * */
+export function bindWarrantAddressApi(data) {
+  return request.post("voucher/warrant/address", data);
+}
+
+/*
+ * 消费券流水
+ * */
+export function getVoucherRecord(q) {
+  return request.get("voucher/record", q);
+}
+
+/*
+ * 权证流水
+ * */
+export function getWarrantRecord(q) {
+  return request.get("voucher/warrant/record", q);
+}
+
+/*
  * 立即提现 冻结期、冻结佣金、可提现佣金、最低可提现金额
  * */
 export function extractUser() {

@@ -57,6 +57,13 @@
 						<view class='name'>每日签到可获得积分奖励</view>
 						<view class='earn'>赚积分</view>
 					</navigator>
+					<navigator class='item acea-row row-between-wrapper' hover-class='none' url='/pages/users/user_voucher/index'>
+						<view class='pictrue'>
+							<image :src="urlDomain+'crmebimage/perset/staticImg/score.png'"></image>
+						</view>
+						<view class='name'>积分可兑换消费券与权证</view>
+						<view class='earn'>去兑换</view>
+					</navigator>
 				</view>
 			</view>
 		</view>

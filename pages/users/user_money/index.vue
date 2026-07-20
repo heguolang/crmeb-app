@@ -48,6 +48,12 @@
 						</view>
 						<view>积分中心</view>
 					</navigator>
+					<navigator class='item' hover-class='none' url='/pages/users/user_voucher/index'>
+						<view class='pictrue'>
+							<text class="iconfont icon-s-zhangdanjilu icon_txt"></text>
+						</view>
+						<view>消费券权证</view>
+					</navigator>
 				</view>
 				<view class='advert acea-row row-between-wrapper'>
 					<navigator class='item acea-row row-between-wrapper' hover-class='none' url='/pages/users/user_sgin/index'>

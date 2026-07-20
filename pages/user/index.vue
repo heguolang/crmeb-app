@@ -42,13 +42,13 @@
 									<text class="num">{{userInfo.integral && uid ? userInfo.integral: 0}}</text>
 									<view class="txt">积分</view>
 								</view>
-								<view class="num-item" @click="goMenuPage('/pages/users/user_coupon/index')">
-									<text class="num">{{userInfo.couponCount && uid ? userInfo.couponCount : 0}}</text>
-									<view class="txt">优惠券</view>
+								<view class="num-item" @click="goMenuPage('/pages/users/user_voucher/index')">
+									<text class="num">{{userInfo.consumeVoucher && uid ? userInfo.consumeVoucher : 0}}</text>
+									<view class="txt">消费券</view>
 								</view>
-								<view class="num-item" @click="goMenuPage('/pages/users/user_goods_collection/index')">
-									<text class="num">{{userInfo.collectCount && uid ? userInfo.collectCount : 0}}</text>
-									<view class="txt">收藏</view>
+								<view class="num-item" @click="goMenuPage('/pages/users/user_voucher/index')">
+									<text class="num">{{userInfo.warrant && uid ? userInfo.warrant : 0}}</text>
+									<view class="txt">权证</view>
 								</view>
 							</view>
 						</view>
