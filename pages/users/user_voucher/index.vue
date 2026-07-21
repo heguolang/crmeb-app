@@ -113,7 +113,6 @@
 						至少需要 {{ warrantByIntegralCalc.ratio }} 积分才能兑换 1 权证
 					</view>
 				</view>
-				<button class="primary-btn" :disabled="!asset.switchOn" @click="onIntegralToWarrant">立即兑换</button>
 			</view>
 
 			<!-- 消费券 → 权证 -->
@@ -135,15 +134,14 @@
 						至少需要 {{ warrantByVoucherCalc.ratio }} 消费券才能兑换 1 权证
 					</view>
 				</view>
-				<button class="primary-btn" :disabled="!asset.switchOn" @click="onVoucherToWarrant">立即兑换</button>
 			</view>
 		</view>
 
-		<!-- 权证地址 -->
-		<view class="panel address-panel" :class="{ disabled: !asset.switchOn }">
+		<!-- 权证地址：仅兑权证时展示，与兑换一并提交 -->
+		<view class="panel address-panel" v-if="isWarrantExchange" :class="{ disabled: !asset.switchOn }">
 			<view class="panel-head">
 				<view class="panel-title">权证地址</view>
-				<view class="panel-sub">仅展示用途，绑定第三方地址</view>
+				<view class="panel-sub">兑换权证时需一并填写第三方地址</view>
 			</view>
 			<view class="field">
 				<view class="field-label">第三方地址</view>
@@ -157,7 +155,7 @@
 			<view class="warrant-hold">
 				当前权证 <text class="preview-num">{{ formatMoney(asset.warrant) }}</text>
 			</view>
-			<button class="primary-btn soft" :disabled="!asset.switchOn" @click="onBindAddress">提交地址</button>
+			<button class="primary-btn" :disabled="!asset.switchOn" @click="onSubmitWarrantExchange">提交兑换</button>
 		</view>
 
 		<!-- 明细 -->
@@ -192,7 +190,6 @@ import {
 	integralToVoucherApi,
 	voucherToBalanceApi,
 	exchangeWarrantApi,
-	bindWarrantAddressApi,
 	getVoucherRecord,
 	getWarrantRecord
 } from '@/api/user.js';
@@ -222,6 +219,9 @@ export default {
 		};
 	},
 	computed: {
+		isWarrantExchange() {
+			return this.exchangeTab === 2 || this.exchangeTab === 3;
+		},
 		integralCalc() {
 			const ratio = Number(this.asset.integralToVoucherRatio) || 0;
 			const raw = String(this.integralNum || '').trim();
@@ -411,7 +411,9 @@ export default {
 			if (!amount || amount <= 0) {
 				return this.$util.Tips({ title: '请输入有效积分数' });
 			}
-			exchangeWarrantApi({ payType: 'integral', amount })
+			const address = this.getWarrantAddress();
+			if (!address) return;
+			exchangeWarrantApi({ payType: 'integral', amount, address })
 				.then(() => {
 					this.$util.Tips({ title: '兑换成功' });
 					this.warrantIntegralNum = '';
@@ -426,7 +428,9 @@ export default {
 			if (!amount || amount <= 0) {
 				return this.$util.Tips({ title: '请输入有效消费券数量' });
 			}
-			exchangeWarrantApi({ payType: 'voucher', amount })
+			const address = this.getWarrantAddress();
+			if (!address) return;
+			exchangeWarrantApi({ payType: 'voucher', amount, address })
 				.then(() => {
 					this.$util.Tips({ title: '兑换成功' });
 					this.warrantVoucherNum = '';
@@ -435,21 +439,26 @@ export default {
 				})
 				.catch((err) => this.tipError(err));
 		},
-		onBindAddress() {
-			if (!this.ensureSwitchOn()) return;
+		getWarrantAddress() {
 			const address = (this.warrantAddress || '').trim();
 			if (!address) {
-				return this.$util.Tips({ title: '请输入地址' });
+				this.$util.Tips({ title: '请输入权证地址' });
+				return '';
 			}
 			if (address.length > 255) {
-				return this.$util.Tips({ title: '地址长度不能超过255' });
+				this.$util.Tips({ title: '地址长度不能超过255' });
+				return '';
 			}
-			bindWarrantAddressApi({ address })
-				.then(() => {
-					this.$util.Tips({ title: '提交成功' });
-					this.loadAsset();
-				})
-				.catch((err) => this.tipError(err));
+			return address;
+		},
+		onSubmitWarrantExchange() {
+			if (this.exchangeTab === 2) {
+				this.onIntegralToWarrant();
+				return;
+			}
+			if (this.exchangeTab === 3) {
+				this.onVoucherToWarrant();
+			}
 		}
 	}
 };

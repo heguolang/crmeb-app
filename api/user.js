@@ -503,8 +503,8 @@ export function voucherToBalanceApi(data) {
 }
 
 /*
- * 积分或消费券单独兑换权证
- * data: { payType: 'integral'|'voucher', amount: number }
+ * 积分或消费券单独兑换权证（需一并提交权证地址）
+ * data: { payType: 'integral'|'voucher', amount: number, address: string }
  * */
 export function exchangeWarrantApi(data) {
   return request.post("voucher/to/warrant", data);
