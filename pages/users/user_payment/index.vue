@@ -11,25 +11,7 @@
 				<view class="nav acea-row row-around row-middle">
 					<view class="item" :class="active==index?'on':''" v-for="(item,index) in navRecharge" :key="index" @click="navRecharges(index)">{{item}}</view>
 				</view>
-				<view class='tip picList' v-if='!active'>
-					<view class="pic-box pic-box-color acea-row row-center-wrapper row-column" :class="activePic === index ? 'pic-box-color-active' : ''"
-					 v-for="(item, index) in picList" :key="index" @click="picCharge(index, item)">
-						<view class="pic-number-pic">
-							{{ item.price }}<span class="pic-number"> 元</span>
-						</view>
-						<view class="pic-number">赠送：{{ item.giveMoney }} 元</view>
-					</view>
-					<view class="pic-box pic-box-color acea-row row-center-wrapper" :class="parseFloat(activePic)===parseFloat(picList.length)?'pic-box-color-active':''" @click="picCharge(picList.length)">
-						<input type="number" placeholder="其他" v-model="money" maxlength="5" class="pic-box-money pic-number-pic uni-input" :class="parseFloat(activePic) === parseFloat(picList.length) ? 'pic-box-color-active' : ''" @blur="addMoney()" />
-					</view>
-					<view class="tips-box">
-						<view class="tips mt-30">注意事项：</view>
-						<view class="tips-samll" v-for="item in rechargeAttention" :key="item">
-							{{ item }}
-						</view>
-					</view>
-				</view>
-				<view class="tip" v-else>
+				<view class='tip' v-if='!active'>
 					<view class='input'><text>￥</text>
 					<input placeholder="0.00" type='number' placeholder-class='placeholder' :value="number"
 						 name="number"></input></view>
@@ -44,8 +26,19 @@
 						</view>
 					</view>
 				</view>
+				<view class="tip" v-else>
+					<view class='input'><text>￥</text>
+					<input placeholder="0.00" type='number' placeholder-class='placeholder' v-model="money"
+						 maxlength="8" @blur="addMoney()"></input></view>
+					<view class="tips-box">
+						<view class="tips mt-30">注意事项：</view>
+						<view class="tips-samll" v-for="item in rechargeAttention" :key="item">
+							{{ item }}
+						</view>
+					</view>
+				</view>
 				<!-- #ifndef  MP-->
-				<view class='wrapper borRadius14  px-30'  v-if='!active'>
+				<view class='wrapper borRadius14  px-30'  v-if='active'>
 					<view class='item'>
 						<view>支付方式</view>
 						<view class='list'>
@@ -64,7 +57,7 @@
 					</view>
 				</view>
 				<!-- #endif -->
-				<button class='but' formType="submit"> {{active ? '立即转入': '立即充值' }}</button>
+				<button class='but' formType="submit"> {{active ? '立即充值': '立即转入' }}</button>
 				<view class="alipaysubmit" v-html="formContent"></view>
 			</view>
 		</form>
@@ -93,15 +86,12 @@
 			let that = this;
 			return {
 				now_money: 0,
-				navRecharge: ['账户充值', '佣金转入'],
+				navRecharge: ['佣金转入', '账户充值'],
 				active: 0,
 				number: '',
 				placeholder: "0.00",
 				from: '',
-				picList: [],
-				activePic: 0,
 				money: "",
-				numberPic: '',
 				rechar_id: 0,
 				rechargeAttention: [],
 				theme:app.globalData.theme,
@@ -153,32 +143,11 @@
 		},
 		methods: {
 			/**
-			 * 选择金额
-			 */
-			picCharge(idx, item) {
-				this.activePic = idx;
-				if (item === undefined) {
-					this.rechar_id = 0;
-					this.numberPic = "";
-				} else {
-					this.money = "";
-					this.rechar_id = item.id;
-					this.numberPic = item.price;
-				}
-			},
-
-
-			/**
-			 * 充值额度选择
+			 * 获取充值注意事项
 			 */
 			getRecharge() {
 				getRechargeApi()
 					.then(res => {
-						this.picList = res.data.rechargeQuota;
-						if (this.picList[0]) {
-							this.rechar_id = this.picList[0].id;
-							this.numberPic = this.picList[0].price;
-						}
 						this.rechargeAttention = res.data.rechargeAttention || [];
 					})
 					.catch(res => {
@@ -212,9 +181,9 @@
 			 */
 			submitSub: Debounce(function(e) {
 				let that = this
-				let value = e.detail.value.number ? e.detail.value.number :that.numberPic;
-				// 转入余额
-				if (that.active) {
+				let value = e.detail.value.number ? e.detail.value.number : that.money;
+				// 佣金转入（左侧 tab，active=0）
+				if (!that.active) {
 					if (parseFloat(value) < 0 || parseFloat(value) == NaN || value == undefined || value == "") {
 						return that.$util.Tips({
 							title: '请输入金额'
@@ -256,25 +225,25 @@
 						title: '正在支付',
 					})
 					let money = parseFloat(this.money);
-					if (this.rechar_id == 0) {
-						if (Number.isNaN(money)) {
-							return that.$util.Tips({
-								title: '充值金额必须为数字'
-							});
-						}
-						if (money <= 0) {
-							return that.$util.Tips({
-								title: '充值金额不能为0'
-							});
-						}
-						if (money > 50000) {
-							return that.$util.Tips({
-								title: '充值金额最大值为50000'
-							});
-						}
-					} else {
-						money = this.numberPic
+					if (Number.isNaN(money)) {
+						uni.hideLoading();
+						return that.$util.Tips({
+							title: '充值金额必须为数字'
+						});
 					}
+					if (money <= 0) {
+						uni.hideLoading();
+						return that.$util.Tips({
+							title: '充值金额不能为0'
+						});
+					}
+					if (money > 50000) {
+						uni.hideLoading();
+						return that.$util.Tips({
+							title: '充值金额最大值为50000'
+						});
+					}
+					this.rechar_id = 0;
 					switch (that.payType){
 						case 'weixin':
 						// #ifdef APP-PLUS
@@ -544,44 +513,6 @@
 		}
 	}
 
-	.picList {
-		display: flex;
-		flex-wrap: wrap;
-		margin: 30rpx 0;
-
-		.pic-box {
-			width: 32%;
-			height: auto;
-			border-radius: 20rpx;
-			margin-top: 21rpx;
-			padding: 20rpx 0;
-			margin-right: 12rpx;
-
-			&:nth-child(3n) {
-				margin-right: 0;
-			}
-		}
-
-		.pic-box-color {
-			background-color: #f4f4f4;
-			color: #656565;
-		}
-
-		.pic-number {
-			font-size: 22rpx;
-		}
-
-		.pic-number-pic {
-			font-size: 38rpx;
-			margin-right: 10rpx;
-			text-align: center;
-		}
-
-	}
-    .pic-box-color-active {
-			@include linear-gradient(theme);
-			color: #fff !important;
-	}
 	.tips-box {
 		.tips {
 			font-size: 28rpx;

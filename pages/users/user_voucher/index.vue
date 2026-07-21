@@ -17,7 +17,7 @@
 						<view class="asset-label">消费券</view>
 					</view>
 					<view class="asset-cell">
-						<view class="asset-num">{{ formatMoney(asset.warrant) }}</view>
+						<view class="asset-num">{{ formatWarrant(asset.warrant) }}</view>
 						<view class="asset-label">权证</view>
 					</view>
 					<view class="asset-cell">
@@ -105,12 +105,10 @@
 						预计获得 <text class="preview-num">{{ warrantByIntegralCalc.warrant }}</text> 权证
 					</view>
 					<view class="preview-sub">
-						比例 {{ warrantByIntegralCalc.ratio }} 积分 = 1 权证，
-						实际扣除 <text class="preview-num">{{ warrantByIntegralCalc.useIntegral }}</text> 积分
-						<text v-if="warrantByIntegralCalc.remain > 0">（余 {{ warrantByIntegralCalc.remain }} 不兑换）</text>
+						比例 {{ warrantByIntegralCalc.ratio }} 积分 = 1 权证
 					</view>
-					<view class="preview-warn" v-if="warrantByIntegralCalc.warrant <= 0">
-						至少需要 {{ warrantByIntegralCalc.ratio }} 积分才能兑换 1 权证
+					<view class="preview-warn" v-if="Number(warrantByIntegralCalc.warrant) < 0.001">
+						兑换后权证不足 0.001，请增加积分
 					</view>
 				</view>
 			</view>
@@ -126,12 +124,10 @@
 						预计获得 <text class="preview-num">{{ warrantByVoucherCalc.warrant }}</text> 权证
 					</view>
 					<view class="preview-sub">
-						比例 {{ warrantByVoucherCalc.ratio }} 消费券 = 1 权证，
-						实际扣除 <text class="preview-num">{{ warrantByVoucherCalc.useVoucher }}</text> 消费券
-						<text v-if="warrantByVoucherCalc.remain > 0">（余 {{ warrantByVoucherCalc.remain }} 不兑换）</text>
+						比例 {{ warrantByVoucherCalc.ratio }} 消费券 = 1 权证
 					</view>
-					<view class="preview-warn" v-if="Number(warrantByVoucherCalc.warrant) <= 0">
-						至少需要 {{ warrantByVoucherCalc.ratio }} 消费券才能兑换 1 权证
+					<view class="preview-warn" v-if="Number(warrantByVoucherCalc.warrant) < 0.001">
+						兑换后权证不足 0.001，请增加消费券
 					</view>
 				</view>
 			</view>
@@ -141,10 +137,8 @@
 		<view class="panel address-panel" v-if="isWarrantExchange" :class="{ disabled: !asset.switchOn }">
 			<view class="panel-head">
 				<view class="panel-title">权证地址</view>
-				<view class="panel-sub">兑换权证时需一并填写第三方地址</view>
 			</view>
 			<view class="field">
-				<view class="field-label">第三方地址</view>
 				<input class="field-input" type="text" :disabled="!asset.switchOn" v-model="warrantAddress" placeholder="请输入第三方地址" />
 			</view>
 			<view class="bound" v-if="asset.warrantAddress">
@@ -153,7 +147,7 @@
 				<view class="bound-time" v-if="asset.warrantAddressTime">{{ asset.warrantAddressTime }}</view>
 			</view>
 			<view class="warrant-hold">
-				当前权证 <text class="preview-num">{{ formatMoney(asset.warrant) }}</text>
+				当前权证 <text class="preview-num">{{ formatWarrant(asset.warrant) }}</text>
 			</view>
 			<button class="primary-btn" :disabled="!asset.switchOn" @click="onSubmitWarrantExchange">提交兑换</button>
 		</view>
@@ -174,7 +168,7 @@
 						{{ item.type === 1 ? '+' : '-' }}{{ item.voucher }}
 					</view>
 					<view class="record-num" :class="item.type === 1 ? 'plus' : 'minus'" v-else>
-						{{ item.type === 1 ? '+' : '-' }}{{ item.warrant }}
+						{{ item.type === 1 ? '+' : '-' }}{{ formatWarrant(item.warrant) }}
 					</view>
 				</view>
 				<view class="footer-tip" v-if="recordList.length">{{ loadTitle }}</view>
@@ -263,14 +257,13 @@ export default {
 			if (!raw || !integral || integral <= 0 || ratio <= 0) {
 				return { show: false };
 			}
-			const warrant = Math.floor(integral / ratio);
-			const useIntegral = warrant * ratio;
+			// 精确兑换：权证 = 积分 / 比例，保留 3 位小数（如 1000:1 → 1 积分 = 0.001）
+			const warrant = Math.floor((integral / ratio) * 1000) / 1000;
 			return {
 				show: true,
 				ratio,
-				warrant,
-				useIntegral,
-				remain: integral - useIntegral
+				warrant: warrant.toFixed(3),
+				useIntegral: integral
 			};
 		},
 		warrantByVoucherCalc() {
@@ -280,14 +273,12 @@ export default {
 			if (!raw || !voucher || voucher <= 0 || ratio <= 0) {
 				return { show: false };
 			}
-			const times = Math.floor(voucher / ratio);
-			const useVoucher = times * ratio;
+			const warrant = Math.floor((voucher / ratio) * 1000) / 1000;
 			return {
 				show: true,
 				ratio,
-				warrant: times.toFixed(2),
-				useVoucher: useVoucher.toFixed(2),
-				remain: Number((voucher - useVoucher).toFixed(2))
+				warrant: warrant.toFixed(3),
+				useVoucher: voucher.toFixed(2)
 			};
 		}
 	},
@@ -303,6 +294,11 @@ export default {
 			const n = Number(val);
 			if (Number.isNaN(n)) return '0.00';
 			return n.toFixed(2);
+		},
+		formatWarrant(val) {
+			const n = Number(val);
+			if (Number.isNaN(n)) return '0.000';
+			return n.toFixed(3);
 		},
 		onIntegralInput(e) {
 			this.integralNum = (e && e.detail && e.detail.value) || this.integralNum;
@@ -411,6 +407,9 @@ export default {
 			if (!amount || amount <= 0) {
 				return this.$util.Tips({ title: '请输入有效积分数' });
 			}
+			if (Number(this.warrantByIntegralCalc.warrant) < 0.001) {
+				return this.$util.Tips({ title: '兑换后权证不足0.001，请增加积分' });
+			}
 			const address = this.getWarrantAddress();
 			if (!address) return;
 			exchangeWarrantApi({ payType: 'integral', amount, address })
@@ -427,6 +426,9 @@ export default {
 			const amount = parseFloat(this.warrantVoucherNum);
 			if (!amount || amount <= 0) {
 				return this.$util.Tips({ title: '请输入有效消费券数量' });
+			}
+			if (Number(this.warrantByVoucherCalc.warrant) < 0.001) {
+				return this.$util.Tips({ title: '兑换后权证不足0.001，请增加消费券' });
 			}
 			const address = this.getWarrantAddress();
 			if (!address) return;
