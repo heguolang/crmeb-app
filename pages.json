@@ -144,6 +144,19 @@
 					}
 				},
 				{
+					"path": "user_money_transfer/index",
+					"style": {
+						"navigationBarTitleText": "余额转账",
+						"app-plus": {
+							// #ifdef APP-PLUS
+							"titleNView": {
+								"type": "default"
+							}
+							// #endif
+						}
+					}
+				},
+				{
 					"path": "user_bill/index",
 					"style": {
 						"navigationBarTitleText": "账单明细",

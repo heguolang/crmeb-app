@@ -352,6 +352,20 @@ export function transferIn(data) {
 }
 
 /**
+ * 校验收款用户（余额转账）
+ */
+export function checkMoneyTransferApi(toUid) {
+  return request.get("user/money/transfer/check", { toUid });
+}
+
+/**
+ * 余额转账给指定用户
+ */
+export function moneyTransferApi(data) {
+  return request.post("user/money/transfer", data);
+}
+
+/**
  * 获取默认地址
  * 
 */

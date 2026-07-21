@@ -10,6 +10,7 @@
 								<view class='money'>{{statistics.nowMoney || 0}}</view>
 							</view>
 							<view class='acea-row'>
+								<view class='recharge font_color' style="margin-right: 16rpx;" @click="openTransfer">转账</view>
 								<view class='recharge font_color' style="margin-right: 16rpx;" @click="openCash">提现</view>
 								<view v-if="userInfo.rechargeSwitch"  @click="openSubscribe('/pages/users/user_payment/index')" class='recharge font_color'>充值</view>
 							</view>
@@ -170,6 +171,11 @@
 			openCash: function() {
 				uni.navigateTo({
 					url: '/pages/users/user_cash/index?source=balance',
+				});
+			},
+			openTransfer: function() {
+				uni.navigateTo({
+					url: '/pages/users/user_money_transfer/index',
 				});
 			},
 			/**
