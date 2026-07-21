@@ -28,7 +28,8 @@
 				<view class="rate-row">
 					<view class="rate-chip">{{ asset.integralToVoucherRatio || '-' }}积分 = 1消费券</view>
 					<view class="rate-chip">{{ asset.voucherToBalanceRatio || '-' }}消费券 = 1元</view>
-					<view class="rate-chip">{{ asset.warrantNeedVoucher || '-' }}券 + {{ asset.warrantNeedIntegral || '-' }}积分 = 1权证</view>
+					<view class="rate-chip">{{ asset.warrantNeedIntegral || '-' }}积分 = 1权证</view>
+					<view class="rate-chip">{{ asset.warrantNeedVoucher || '-' }}消费券 = 1权证</view>
 				</view>
 			</view>
 		</view>
@@ -53,10 +54,20 @@
 			<view class="form" v-if="exchangeTab === 0">
 				<view class="field">
 					<view class="field-label">兑换积分</view>
-					<input class="field-input" type="number" :disabled="!asset.switchOn" v-model="integralNum" placeholder="请输入积分数" />
+					<input class="field-input" type="number" :disabled="!asset.switchOn" v-model="integralNum" placeholder="请输入积分数" @input="onIntegralInput" />
 				</view>
-				<view class="preview" v-if="integralPreview > 0">
-					预计获得 <text class="preview-num">{{ integralPreview }}</text> 消费券
+				<view class="preview-box" v-if="integralCalc.show">
+					<view class="preview-main">
+						预计获得 <text class="preview-num">{{ integralCalc.voucher }}</text> 消费券
+					</view>
+					<view class="preview-sub">
+						比例 {{ integralCalc.ratio }} 积分 = 1 消费券，
+						实际扣除 <text class="preview-num">{{ integralCalc.useIntegral }}</text> 积分
+						<text v-if="integralCalc.remain > 0">（余 {{ integralCalc.remain }} 不兑换）</text>
+					</view>
+					<view class="preview-warn" v-if="integralCalc.voucher <= 0">
+						至少需要 {{ integralCalc.ratio }} 积分才能兑换 1 消费券
+					</view>
 				</view>
 				<button class="primary-btn" :disabled="!asset.switchOn" @click="onIntegralToVoucher">立即兑换</button>
 			</view>
@@ -65,29 +76,66 @@
 			<view class="form" v-if="exchangeTab === 1">
 				<view class="field">
 					<view class="field-label">兑换消费券</view>
-					<input class="field-input" type="digit" :disabled="!asset.switchOn" v-model="voucherNum" placeholder="请输入消费券数量" />
+					<input class="field-input" type="digit" :disabled="!asset.switchOn" v-model="voucherNum" placeholder="请输入消费券数量" @input="onVoucherInput" />
 				</view>
-				<view class="preview" v-if="balancePreview > 0">
-					预计到账 <text class="preview-num">￥{{ balancePreview }}</text>
+				<view class="preview-box" v-if="balanceCalc.show">
+					<view class="preview-main">
+						预计到账 <text class="preview-num">￥{{ balanceCalc.balance }}</text>
+					</view>
+					<view class="preview-sub">
+						比例 {{ balanceCalc.ratio }} 消费券 = 1 元，
+						实际扣除 <text class="preview-num">{{ balanceCalc.useVoucher }}</text> 消费券
+						<text v-if="balanceCalc.remain > 0">（余 {{ balanceCalc.remain }} 不兑换）</text>
+					</view>
+					<view class="preview-warn" v-if="Number(balanceCalc.balance) <= 0">
+						至少需要 {{ balanceCalc.ratio }} 消费券才能兑换 1 元余额
+					</view>
 				</view>
 				<button class="primary-btn" :disabled="!asset.switchOn" @click="onVoucherToBalance">立即兑换</button>
 			</view>
 
-			<!-- 兑权证 -->
+			<!-- 积分 → 权证 -->
 			<view class="form" v-if="exchangeTab === 2">
 				<view class="field">
-					<view class="field-label">兑换份数</view>
-					<input class="field-input" type="number" :disabled="!asset.switchOn" v-model="warrantQty" placeholder="请输入兑换份数" />
+					<view class="field-label">兑换积分</view>
+					<input class="field-input" type="number" :disabled="!asset.switchOn" v-model="warrantIntegralNum" placeholder="请输入积分数" @input="onWarrantIntegralInput" />
 				</view>
-				<view class="cost-tip">
-					每份消耗：{{ asset.warrantNeedVoucher || '-' }} 消费券 + {{ asset.warrantNeedIntegral || '-' }} 积分
+				<view class="preview-box" v-if="warrantByIntegralCalc.show">
+					<view class="preview-main">
+						预计获得 <text class="preview-num">{{ warrantByIntegralCalc.warrant }}</text> 权证
+					</view>
+					<view class="preview-sub">
+						比例 {{ warrantByIntegralCalc.ratio }} 积分 = 1 权证，
+						实际扣除 <text class="preview-num">{{ warrantByIntegralCalc.useIntegral }}</text> 积分
+						<text v-if="warrantByIntegralCalc.remain > 0">（余 {{ warrantByIntegralCalc.remain }} 不兑换）</text>
+					</view>
+					<view class="preview-warn" v-if="warrantByIntegralCalc.warrant <= 0">
+						至少需要 {{ warrantByIntegralCalc.ratio }} 积分才能兑换 1 权证
+					</view>
 				</view>
-				<view class="preview" v-if="warrantCost.ok">
-					本次将扣除 <text class="preview-num">{{ warrantCost.voucher }}</text> 消费券、
-					<text class="preview-num">{{ warrantCost.integral }}</text> 积分，获得
-					<text class="preview-num">{{ warrantCost.qty }}</text> 权证
+				<button class="primary-btn" :disabled="!asset.switchOn" @click="onIntegralToWarrant">立即兑换</button>
+			</view>
+
+			<!-- 消费券 → 权证 -->
+			<view class="form" v-if="exchangeTab === 3">
+				<view class="field">
+					<view class="field-label">兑换消费券</view>
+					<input class="field-input" type="digit" :disabled="!asset.switchOn" v-model="warrantVoucherNum" placeholder="请输入消费券数量" @input="onWarrantVoucherInput" />
 				</view>
-				<button class="primary-btn" :disabled="!asset.switchOn" @click="onExchangeWarrant">立即兑换</button>
+				<view class="preview-box" v-if="warrantByVoucherCalc.show">
+					<view class="preview-main">
+						预计获得 <text class="preview-num">{{ warrantByVoucherCalc.warrant }}</text> 权证
+					</view>
+					<view class="preview-sub">
+						比例 {{ warrantByVoucherCalc.ratio }} 消费券 = 1 权证，
+						实际扣除 <text class="preview-num">{{ warrantByVoucherCalc.useVoucher }}</text> 消费券
+						<text v-if="warrantByVoucherCalc.remain > 0">（余 {{ warrantByVoucherCalc.remain }} 不兑换）</text>
+					</view>
+					<view class="preview-warn" v-if="Number(warrantByVoucherCalc.warrant) <= 0">
+						至少需要 {{ warrantByVoucherCalc.ratio }} 消费券才能兑换 1 权证
+					</view>
+				</view>
+				<button class="primary-btn" :disabled="!asset.switchOn" @click="onVoucherToWarrant">立即兑换</button>
 			</view>
 		</view>
 
@@ -159,10 +207,11 @@ export default {
 			loaded: false,
 			integralNum: '',
 			voucherNum: '',
-			warrantQty: '1',
+			warrantIntegralNum: '',
+			warrantVoucherNum: '',
 			warrantAddress: '',
 			exchangeTab: 0,
-			exchangeTabs: ['积分兑券', '券兑余额', '兑换权证'],
+			exchangeTabs: ['积分兑券', '券兑余额', '积分兑权证', '券兑权证'],
 			tab: 0,
 			recordList: [],
 			page: 1,
@@ -173,30 +222,72 @@ export default {
 		};
 	},
 	computed: {
-		integralPreview() {
+		integralCalc() {
 			const ratio = Number(this.asset.integralToVoucherRatio) || 0;
-			const integral = parseInt(this.integralNum, 10) || 0;
-			if (ratio <= 0 || integral <= 0) return 0;
-			return Math.floor(integral / ratio);
-		},
-		balancePreview() {
-			const ratio = Number(this.asset.voucherToBalanceRatio) || 0;
-			const voucher = parseFloat(this.voucherNum) || 0;
-			if (ratio <= 0 || voucher <= 0) return 0;
-			return (Math.floor((voucher / ratio) * 100) / 100).toFixed(2);
-		},
-		warrantCost() {
-			const qty = parseInt(this.warrantQty, 10) || 0;
-			const needV = Number(this.asset.warrantNeedVoucher) || 0;
-			const needI = Number(this.asset.warrantNeedIntegral) || 0;
-			if (qty <= 0 || needV <= 0 || needI <= 0) {
-				return { ok: false };
+			const raw = String(this.integralNum || '').trim();
+			const integral = parseInt(raw, 10);
+			if (!raw || !integral || integral <= 0 || ratio <= 0) {
+				return { show: false };
 			}
+			const voucher = Math.floor(integral / ratio);
+			const useIntegral = voucher * ratio;
 			return {
-				ok: true,
-				qty,
-				voucher: (needV * qty).toFixed(2),
-				integral: needI * qty
+				show: true,
+				ratio,
+				voucher,
+				useIntegral,
+				remain: integral - useIntegral
+			};
+		},
+		balanceCalc() {
+			const ratio = Number(this.asset.voucherToBalanceRatio) || 0;
+			const raw = String(this.voucherNum || '').trim();
+			const voucher = parseFloat(raw);
+			if (!raw || !voucher || voucher <= 0 || ratio <= 0) {
+				return { show: false };
+			}
+			const times = Math.floor(voucher / ratio);
+			const useVoucher = times * ratio;
+			return {
+				show: true,
+				ratio,
+				balance: times.toFixed(2),
+				useVoucher: useVoucher.toFixed(2),
+				remain: Number((voucher - useVoucher).toFixed(2))
+			};
+		},
+		warrantByIntegralCalc() {
+			const ratio = Number(this.asset.warrantNeedIntegral) || 0;
+			const raw = String(this.warrantIntegralNum || '').trim();
+			const integral = parseInt(raw, 10);
+			if (!raw || !integral || integral <= 0 || ratio <= 0) {
+				return { show: false };
+			}
+			const warrant = Math.floor(integral / ratio);
+			const useIntegral = warrant * ratio;
+			return {
+				show: true,
+				ratio,
+				warrant,
+				useIntegral,
+				remain: integral - useIntegral
+			};
+		},
+		warrantByVoucherCalc() {
+			const ratio = Number(this.asset.warrantNeedVoucher) || 0;
+			const raw = String(this.warrantVoucherNum || '').trim();
+			const voucher = parseFloat(raw);
+			if (!raw || !voucher || voucher <= 0 || ratio <= 0) {
+				return { show: false };
+			}
+			const times = Math.floor(voucher / ratio);
+			const useVoucher = times * ratio;
+			return {
+				show: true,
+				ratio,
+				warrant: times.toFixed(2),
+				useVoucher: useVoucher.toFixed(2),
+				remain: Number((voucher - useVoucher).toFixed(2))
 			};
 		}
 	},
@@ -212,6 +303,18 @@ export default {
 			const n = Number(val);
 			if (Number.isNaN(n)) return '0.00';
 			return n.toFixed(2);
+		},
+		onIntegralInput(e) {
+			this.integralNum = (e && e.detail && e.detail.value) || this.integralNum;
+		},
+		onVoucherInput(e) {
+			this.voucherNum = (e && e.detail && e.detail.value) || this.voucherNum;
+		},
+		onWarrantIntegralInput(e) {
+			this.warrantIntegralNum = (e && e.detail && e.detail.value) || this.warrantIntegralNum;
+		},
+		onWarrantVoucherInput(e) {
+			this.warrantVoucherNum = (e && e.detail && e.detail.value) || this.warrantVoucherNum;
 		},
 		tipError(err) {
 			const title = typeof err === 'string' ? err : (err && (err.message || err.msg)) || '操作失败';
@@ -302,15 +405,31 @@ export default {
 				})
 				.catch((err) => this.tipError(err));
 		},
-		onExchangeWarrant() {
+		onIntegralToWarrant() {
 			if (!this.ensureSwitchOn()) return;
-			const quantity = parseInt(this.warrantQty, 10);
-			if (!quantity || quantity <= 0) {
-				return this.$util.Tips({ title: '请输入有效份数' });
+			const amount = parseInt(this.warrantIntegralNum, 10);
+			if (!amount || amount <= 0) {
+				return this.$util.Tips({ title: '请输入有效积分数' });
 			}
-			exchangeWarrantApi({ quantity })
+			exchangeWarrantApi({ payType: 'integral', amount })
 				.then(() => {
 					this.$util.Tips({ title: '兑换成功' });
+					this.warrantIntegralNum = '';
+					this.loadAsset();
+					this.resetAndLoadRecord();
+				})
+				.catch((err) => this.tipError(err));
+		},
+		onVoucherToWarrant() {
+			if (!this.ensureSwitchOn()) return;
+			const amount = parseFloat(this.warrantVoucherNum);
+			if (!amount || amount <= 0) {
+				return this.$util.Tips({ title: '请输入有效消费券数量' });
+			}
+			exchangeWarrantApi({ payType: 'voucher', amount })
+				.then(() => {
+					this.$util.Tips({ title: '兑换成功' });
+					this.warrantVoucherNum = '';
 					this.loadAsset();
 					this.resetAndLoadRecord();
 				})
@@ -449,13 +568,15 @@ export default {
 
 .seg {
 	display: flex;
+	flex-wrap: wrap;
 	background: #f3f4f6;
 	border-radius: 14rpx;
 	padding: 6rpx;
 	margin-bottom: 28rpx;
 }
 .seg-item {
-	flex: 1;
+	width: 50%;
+	box-sizing: border-box;
 	text-align: center;
 	font-size: 26rpx;
 	color: #666;
@@ -495,18 +616,38 @@ export default {
 	background: #fff;
 }
 
-.preview,
-.cost-tip,
-.warrant-hold {
-	font-size: 24rpx;
-	color: #666;
-	margin-bottom: 22rpx;
+.preview-box {
+	background: #fff5f4;
+	border: 1px solid rgba(233, 51, 35, 0.12);
+	border-radius: 14rpx;
+	padding: 20rpx 22rpx;
+	margin-bottom: 24rpx;
+}
+.preview-main {
+	font-size: 28rpx;
+	color: #333;
+	font-weight: 600;
+}
+.preview-sub {
+	margin-top: 10rpx;
+	font-size: 22rpx;
+	color: #888;
 	line-height: 1.5;
+}
+.preview-warn {
+	margin-top: 10rpx;
+	font-size: 22rpx;
+	color: #e93323;
 }
 .preview-num {
 	color: #e93323;
 	font-weight: 700;
 	padding: 0 4rpx;
+}
+.warrant-hold {
+	font-size: 24rpx;
+	color: #666;
+	margin-bottom: 22rpx;
 }
 
 .primary-btn {
@@ -557,6 +698,9 @@ export default {
 }
 .record-seg {
 	margin-bottom: 8rpx;
+}
+.record-seg .seg-item {
+	width: 50%;
 }
 .record-list {
 	padding-top: 8rpx;

@@ -489,7 +489,8 @@ export function voucherToBalanceApi(data) {
 }
 
 /*
- * 兑换权证
+ * 积分或消费券单独兑换权证
+ * data: { payType: 'integral'|'voucher', amount: number }
  * */
 export function exchangeWarrantApi(data) {
   return request.post("voucher/to/warrant", data);
