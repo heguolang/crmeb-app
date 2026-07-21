@@ -10,7 +10,8 @@
 //移动端商城API（必须是 crmeb-front 接口域名，不是 H5 页面域名）
 //let domain = 'http://127.0.0.1:8081'
 // 服务器需把 /api/front 反代到 front(8081)，/api/admin 反代到 admin(8080)
-let domain = 'http://47.120.18.0:20410'
+//let domain = 'http://47.120.18.0:20410'
+let domain = 'http://127.0.0.1:8081'
 
 module.exports = {
 	// 请求域名 格式： https://您的域名
@@ -18,9 +19,11 @@ module.exports = {
 		// HTTP_REQUEST_URL:'',
 		HTTP_REQUEST_URL: domain,
 		// H5商城页面地址（给用户打开的网址）
-		HTTP_H5_URL: 'http://47.120.18.0:20410',
+		//HTTP_H5_URL: 'http://47.120.18.0:20410',
+		HTTP_H5_URL: 'http://127.0.0.1:8081',
 	// #endif
-		HTTP_H5_URL: 'http://47.120.18.0:20410',
+		//HTTP_H5_URL: 'http://47.120.18.0:20410',
+		HTTP_H5_URL: 'http://127.0.0.1:8081',
 	// #ifdef H5
 		HTTP_REQUEST_URL: domain,
 	// #endif

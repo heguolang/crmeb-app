@@ -112,14 +112,11 @@
 			</div>
 		</div>
 		<div class="bottom"></div>
-		<Verify @success="handlerOnVerSuccess" :captchaType="'clickWord'" :imgSize="{ width: '330px', height: '155px' }"
-		        ref="verify"></Verify>
 	</div>
 </template>
 <script>
 	import dayjs from "@/plugin/dayjs/dayjs.min.js";
 	import sendVerifyCode from "@/mixins/SendVerifyCode";
-	import Verify from '../components/verifition/verify.vue';
 	import {
 		loginH5,
 		loginMobile,
@@ -145,7 +142,6 @@
 		name: "Login",
 		mixins: [sendVerifyCode],
 		components: {
-			Verify,
 		},
 		data: function() {
 			return {
@@ -194,11 +190,6 @@
 			});
 		},
 		methods: {
-			//滑块验证成功后
-			handlerOnVerSuccess(data) {
-				this.$refs.verify.hide();
-				this.codeSend();
-			},
 			//发送验证码
 			codeSend() {
 				let that = this;
@@ -473,7 +464,7 @@
 					title: '请输入正确的手机号码'
 				});
 				if (that.formItem == 2) that.type = "register";
-				that.$refs.verify.show();
+				that.codeSend();
 			},
 			navTap: function(index) {
 				this.current = index;

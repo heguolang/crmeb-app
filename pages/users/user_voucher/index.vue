@@ -1,77 +1,139 @@
 <template>
-	<view class="voucher-page">
+	<view class="voucher-page" :data-theme="theme">
 		<view class="off-tip" v-if="loaded && !asset.switchOn">功能暂未开启，请稍后再试</view>
 
-		<view class="header">
-			<view class="row">
-				<view class="item">
-					<view class="num">{{ asset.integral || 0 }}</view>
-					<view class="label">积分</view>
+		<!-- 资产总览 -->
+		<view class="hero">
+			<view class="hero-bg"></view>
+			<view class="hero-inner">
+				<view class="hero-title">我的资产</view>
+				<view class="asset-grid">
+					<view class="asset-cell">
+						<view class="asset-num">{{ asset.integral || 0 }}</view>
+						<view class="asset-label">积分</view>
+					</view>
+					<view class="asset-cell">
+						<view class="asset-num">{{ formatMoney(asset.consumeVoucher) }}</view>
+						<view class="asset-label">消费券</view>
+					</view>
+					<view class="asset-cell">
+						<view class="asset-num">{{ formatMoney(asset.warrant) }}</view>
+						<view class="asset-label">权证</view>
+					</view>
+					<view class="asset-cell">
+						<view class="asset-num">{{ formatMoney(asset.nowMoney) }}</view>
+						<view class="asset-label">余额</view>
+					</view>
 				</view>
-				<view class="item">
-					<view class="num">{{ asset.consumeVoucher || 0 }}</view>
-					<view class="label">消费券</view>
-				</view>
-				<view class="item">
-					<view class="num">{{ asset.warrant || 0 }}</view>
-					<view class="label">权证</view>
-				</view>
-				<view class="item">
-					<view class="num">{{ asset.nowMoney || 0 }}</view>
-					<view class="label">余额</view>
+				<view class="rate-row">
+					<view class="rate-chip">{{ asset.integralToVoucherRatio || '-' }}积分 = 1消费券</view>
+					<view class="rate-chip">{{ asset.voucherToBalanceRatio || '-' }}消费券 = 1元</view>
+					<view class="rate-chip">{{ asset.warrantNeedVoucher || '-' }}券 + {{ asset.warrantNeedIntegral || '-' }}积分 = 1权证</view>
 				</view>
 			</view>
-			<view class="tips">
-				比例：{{ asset.integralToVoucherRatio || '-' }}积分=1消费券；
-				{{ asset.voucherToBalanceRatio || '-' }}消费券=1元余额；
-				{{ asset.warrantNeedVoucher || '-' }}消费券+{{ asset.warrantNeedIntegral || '-' }}积分=1权证
+		</view>
+
+		<!-- 兑换 -->
+		<view class="panel" :class="{ disabled: !asset.switchOn }">
+			<view class="panel-head">
+				<view class="panel-title">兑换中心</view>
+				<view class="panel-sub">按后台比例即时兑换</view>
+			</view>
+			<view class="seg">
+				<view
+					v-for="(item, index) in exchangeTabs"
+					:key="index"
+					class="seg-item"
+					:class="{ on: exchangeTab === index }"
+					@click="exchangeTab = index"
+				>{{ item }}</view>
+			</view>
+
+			<!-- 积分 → 消费券 -->
+			<view class="form" v-if="exchangeTab === 0">
+				<view class="field">
+					<view class="field-label">兑换积分</view>
+					<input class="field-input" type="number" :disabled="!asset.switchOn" v-model="integralNum" placeholder="请输入积分数" />
+				</view>
+				<view class="preview" v-if="integralPreview > 0">
+					预计获得 <text class="preview-num">{{ integralPreview }}</text> 消费券
+				</view>
+				<button class="primary-btn" :disabled="!asset.switchOn" @click="onIntegralToVoucher">立即兑换</button>
+			</view>
+
+			<!-- 消费券 → 余额 -->
+			<view class="form" v-if="exchangeTab === 1">
+				<view class="field">
+					<view class="field-label">兑换消费券</view>
+					<input class="field-input" type="digit" :disabled="!asset.switchOn" v-model="voucherNum" placeholder="请输入消费券数量" />
+				</view>
+				<view class="preview" v-if="balancePreview > 0">
+					预计到账 <text class="preview-num">￥{{ balancePreview }}</text>
+				</view>
+				<button class="primary-btn" :disabled="!asset.switchOn" @click="onVoucherToBalance">立即兑换</button>
+			</view>
+
+			<!-- 兑权证 -->
+			<view class="form" v-if="exchangeTab === 2">
+				<view class="field">
+					<view class="field-label">兑换份数</view>
+					<input class="field-input" type="number" :disabled="!asset.switchOn" v-model="warrantQty" placeholder="请输入兑换份数" />
+				</view>
+				<view class="cost-tip">
+					每份消耗：{{ asset.warrantNeedVoucher || '-' }} 消费券 + {{ asset.warrantNeedIntegral || '-' }} 积分
+				</view>
+				<view class="preview" v-if="warrantCost.ok">
+					本次将扣除 <text class="preview-num">{{ warrantCost.voucher }}</text> 消费券、
+					<text class="preview-num">{{ warrantCost.integral }}</text> 积分，获得
+					<text class="preview-num">{{ warrantCost.qty }}</text> 权证
+				</view>
+				<button class="primary-btn" :disabled="!asset.switchOn" @click="onExchangeWarrant">立即兑换</button>
 			</view>
 		</view>
 
-		<view class="card" :class="{ disabled: !asset.switchOn }">
-			<view class="title">积分兑换消费券</view>
-			<input class="input" type="number" :disabled="!asset.switchOn" v-model="integralNum" placeholder="请输入积分数" />
-			<button class="btn" :disabled="!asset.switchOn" @click="onIntegralToVoucher">立即兑换</button>
-		</view>
-
-		<view class="card" :class="{ disabled: !asset.switchOn }">
-			<view class="title">消费券兑换余额</view>
-			<input class="input" type="digit" :disabled="!asset.switchOn" v-model="voucherNum" placeholder="请输入消费券数量" />
-			<button class="btn" :disabled="!asset.switchOn" @click="onVoucherToBalance">立即兑换</button>
-		</view>
-
-		<view class="card" :class="{ disabled: !asset.switchOn }">
-			<view class="title">兑换权证（仅展示）</view>
-			<input class="input" type="number" :disabled="!asset.switchOn" v-model="warrantQty" placeholder="请输入兑换份数" />
-			<button class="btn" :disabled="!asset.switchOn" @click="onExchangeWarrant">立即兑换</button>
-		</view>
-
-		<view class="card address-card" :class="{ disabled: !asset.switchOn }">
-			<view class="title">输入您的地址：</view>
-			<input class="input" type="text" :disabled="!asset.switchOn" v-model="warrantAddress" placeholder="请输入第三方地址" />
+		<!-- 权证地址 -->
+		<view class="panel address-panel" :class="{ disabled: !asset.switchOn }">
+			<view class="panel-head">
+				<view class="panel-title">权证地址</view>
+				<view class="panel-sub">仅展示用途，绑定第三方地址</view>
+			</view>
+			<view class="field">
+				<view class="field-label">第三方地址</view>
+				<input class="field-input" type="text" :disabled="!asset.switchOn" v-model="warrantAddress" placeholder="请输入第三方地址" />
+			</view>
 			<view class="bound" v-if="asset.warrantAddress">
-				已绑定：{{ asset.warrantAddress }}
-				<text v-if="asset.warrantAddressTime">（{{ asset.warrantAddressTime }}）</text>
+				<view class="bound-label">已绑定</view>
+				<view class="bound-val">{{ asset.warrantAddress }}</view>
+				<view class="bound-time" v-if="asset.warrantAddressTime">{{ asset.warrantAddressTime }}</view>
 			</view>
-			<view class="hint">提示：当前权证为 <text class="hint-num">{{ asset.warrant || 0 }}</text></view>
-			<button class="btn submit-btn" :disabled="!asset.switchOn" @click="onBindAddress">立即提交</button>
+			<view class="warrant-hold">
+				当前权证 <text class="preview-num">{{ formatMoney(asset.warrant) }}</text>
+			</view>
+			<button class="primary-btn soft" :disabled="!asset.switchOn" @click="onBindAddress">提交地址</button>
 		</view>
 
-		<view class="tabs">
-			<view class="tab" :class="{ on: tab === 0 }" @click="switchTab(0)">消费券明细</view>
-			<view class="tab" :class="{ on: tab === 1 }" @click="switchTab(1)">权证明细</view>
-		</view>
-		<view class="list">
-			<view class="line" v-for="(item, index) in recordList" :key="index">
-				<view>
-					<view class="state">{{ item.title }}</view>
-					<view class="time">{{ item.updateTime }}</view>
-				</view>
-				<view class="num" v-if="tab === 0">{{ item.type === 1 ? '+' : '-' }}{{ item.voucher }}</view>
-				<view class="num" v-else>{{ item.type === 1 ? '+' : '-' }}{{ item.warrant }}</view>
+		<!-- 明细 -->
+		<view class="panel record-panel">
+			<view class="seg record-seg">
+				<view class="seg-item" :class="{ on: tab === 0 }" @click="switchTab(0)">消费券明细</view>
+				<view class="seg-item" :class="{ on: tab === 1 }" @click="switchTab(1)">权证明细</view>
 			</view>
-			<view class="loading-tip" v-if="recordList.length">{{ loadTitle }}</view>
-			<view class="empty" v-if="!recordList.length && !loading">暂无记录</view>
+			<view class="record-list">
+				<view class="record-item" v-for="(item, index) in recordList" :key="index">
+					<view class="record-left">
+						<view class="record-title">{{ item.title }}</view>
+						<view class="record-time">{{ item.updateTime }}</view>
+					</view>
+					<view class="record-num" :class="item.type === 1 ? 'plus' : 'minus'" v-if="tab === 0">
+						{{ item.type === 1 ? '+' : '-' }}{{ item.voucher }}
+					</view>
+					<view class="record-num" :class="item.type === 1 ? 'plus' : 'minus'" v-else>
+						{{ item.type === 1 ? '+' : '-' }}{{ item.warrant }}
+					</view>
+				</view>
+				<view class="footer-tip" v-if="recordList.length">{{ loadTitle }}</view>
+				<view class="footer-tip empty" v-if="!recordList.length && !loading">暂无记录</view>
+			</view>
 		</view>
 	</view>
 </template>
@@ -87,15 +149,20 @@ import {
 	getWarrantRecord
 } from '@/api/user.js';
 
+let app = getApp();
+
 export default {
 	data() {
 		return {
+			theme: (app && app.globalData && app.globalData.theme) || '',
 			asset: { switchOn: true },
 			loaded: false,
 			integralNum: '',
 			voucherNum: '',
 			warrantQty: '1',
 			warrantAddress: '',
+			exchangeTab: 0,
+			exchangeTabs: ['积分兑券', '券兑余额', '兑换权证'],
 			tab: 0,
 			recordList: [],
 			page: 1,
@@ -105,6 +172,34 @@ export default {
 			loadTitle: '加载更多'
 		};
 	},
+	computed: {
+		integralPreview() {
+			const ratio = Number(this.asset.integralToVoucherRatio) || 0;
+			const integral = parseInt(this.integralNum, 10) || 0;
+			if (ratio <= 0 || integral <= 0) return 0;
+			return Math.floor(integral / ratio);
+		},
+		balancePreview() {
+			const ratio = Number(this.asset.voucherToBalanceRatio) || 0;
+			const voucher = parseFloat(this.voucherNum) || 0;
+			if (ratio <= 0 || voucher <= 0) return 0;
+			return (Math.floor((voucher / ratio) * 100) / 100).toFixed(2);
+		},
+		warrantCost() {
+			const qty = parseInt(this.warrantQty, 10) || 0;
+			const needV = Number(this.asset.warrantNeedVoucher) || 0;
+			const needI = Number(this.asset.warrantNeedIntegral) || 0;
+			if (qty <= 0 || needV <= 0 || needI <= 0) {
+				return { ok: false };
+			}
+			return {
+				ok: true,
+				qty,
+				voucher: (needV * qty).toFixed(2),
+				integral: needI * qty
+			};
+		}
+	},
 	onShow() {
 		this.loadAsset();
 		this.resetAndLoadRecord();
@@ -113,6 +208,11 @@ export default {
 		this.loadRecord();
 	},
 	methods: {
+		formatMoney(val) {
+			const n = Number(val);
+			if (Number.isNaN(n)) return '0.00';
+			return n.toFixed(2);
+		},
 		tipError(err) {
 			const title = typeof err === 'string' ? err : (err && (err.message || err.msg)) || '操作失败';
 			this.$util.Tips({ title });
@@ -236,147 +336,267 @@ export default {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .voucher-page {
 	min-height: 100vh;
-	background: #f5f5f5;
-	padding-bottom: 40rpx;
+	background: #f6f7f9;
+	padding-bottom: 48rpx;
 }
+
 .off-tip {
-	background: #fff7e6;
-	color: #d48806;
+	background: #fff8e8;
+	color: #c47a00;
 	font-size: 24rpx;
-	padding: 16rpx 24rpx;
+	padding: 18rpx 24rpx;
 	text-align: center;
 }
-.header {
-	background: #e93323;
-	color: #fff;
-	padding: 40rpx 24rpx 30rpx;
+
+.hero {
+	position: relative;
+	padding: 28rpx 24rpx 48rpx;
+	overflow: hidden;
 }
-.row {
+.hero-bg {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 40rpx;
+	background: linear-gradient(145deg, #ff5a45 0%, #e93323 55%, #d42218 100%);
+	border-radius: 0 0 40rpx 40rpx;
+}
+.hero-inner {
+	position: relative;
+	z-index: 1;
+}
+.hero-title {
+	color: rgba(255, 255, 255, 0.92);
+	font-size: 26rpx;
+	margin-bottom: 20rpx;
+	letter-spacing: 2rpx;
+}
+.asset-grid {
 	display: flex;
-	justify-content: space-between;
+	flex-wrap: wrap;
+	background: rgba(255, 255, 255, 0.14);
+	border-radius: 20rpx;
+	backdrop-filter: blur(6px);
+	overflow: hidden;
 }
-.item {
+.asset-cell {
+	width: 50%;
+	box-sizing: border-box;
+	padding: 28rpx 12rpx;
 	text-align: center;
-	flex: 1;
+	color: #fff;
+	border-right: 1px solid rgba(255, 255, 255, 0.12);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
-.num {
-	font-size: 36rpx;
-	font-weight: 600;
+.asset-cell:nth-child(2n) {
+	border-right: none;
 }
-.label {
+.asset-cell:nth-child(n + 3) {
+	border-bottom: none;
+}
+.asset-num {
+	font-size: 40rpx;
+	font-weight: 700;
+	line-height: 1.2;
+}
+.asset-label {
+	margin-top: 10rpx;
 	font-size: 22rpx;
-	margin-top: 8rpx;
-	opacity: 0.9;
+	opacity: 0.88;
 }
-.tips {
-	margin-top: 24rpx;
-	font-size: 22rpx;
-	line-height: 1.5;
-	opacity: 0.9;
+.rate-row {
+	display: flex;
+	flex-wrap: wrap;
+	margin-top: 20rpx;
+	gap: 12rpx;
 }
-.card {
-	margin: 24rpx;
+.rate-chip {
+	background: rgba(255, 255, 255, 0.18);
+	color: #fff;
+	font-size: 20rpx;
+	padding: 8rpx 16rpx;
+	border-radius: 999rpx;
+	line-height: 1.4;
+}
+
+.panel {
+	margin: -12rpx 24rpx 24rpx;
 	background: #fff;
-	border-radius: 16rpx;
-	padding: 24rpx;
+	border-radius: 24rpx;
+	padding: 28rpx 28rpx 32rpx;
+	box-shadow: 0 8rpx 28rpx rgba(20, 20, 40, 0.04);
 }
-.card.disabled {
-	opacity: 0.65;
+.panel.disabled {
+	opacity: 0.7;
 }
-.title {
-	font-size: 28rpx;
-	font-weight: 600;
-	margin-bottom: 16rpx;
+.panel-head {
+	margin-bottom: 22rpx;
 }
-.input {
-	border: 1px solid #eee;
-	border-radius: 8rpx;
-	height: 72rpx;
-	padding: 0 20rpx;
-	margin-bottom: 16rpx;
+.panel-title {
+	font-size: 32rpx;
+	font-weight: 700;
+	color: #1f2329;
 }
-.bound {
+.panel-sub {
+	margin-top: 8rpx;
 	font-size: 22rpx;
+	color: #8a9199;
+}
+
+.seg {
+	display: flex;
+	background: #f3f4f6;
+	border-radius: 14rpx;
+	padding: 6rpx;
+	margin-bottom: 28rpx;
+}
+.seg-item {
+	flex: 1;
+	text-align: center;
+	font-size: 26rpx;
+	color: #666;
+	padding: 16rpx 8rpx;
+	border-radius: 12rpx;
+	transition: all 0.2s ease;
+}
+.seg-item.on {
+	background: #fff;
+	color: #e93323;
+	font-weight: 600;
+	box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.04);
+}
+
+.form {
+	padding-top: 4rpx;
+}
+.field {
+	margin-bottom: 20rpx;
+}
+.field-label {
+	font-size: 24rpx;
 	color: #666;
 	margin-bottom: 12rpx;
-	word-break: break-all;
 }
-.btn {
-	background: #e93323;
-	color: #fff;
+.field-input {
+	height: 84rpx;
+	padding: 0 24rpx;
+	background: #f7f8fa;
+	border-radius: 14rpx;
 	font-size: 28rpx;
-	border-radius: 8rpx;
+	color: #333;
+	border: 1px solid transparent;
 }
-.btn[disabled] {
-	opacity: 0.5;
+.field-input:focus {
+	border-color: rgba(233, 51, 35, 0.35);
+	background: #fff;
 }
-.hint {
+
+.preview,
+.cost-tip,
+.warrant-hold {
 	font-size: 24rpx;
 	color: #666;
-	margin: -4rpx 0 20rpx;
+	margin-bottom: 22rpx;
+	line-height: 1.5;
 }
-.hint-num {
+.preview-num {
 	color: #e93323;
-	font-weight: 600;
+	font-weight: 700;
+	padding: 0 4rpx;
 }
-.submit-btn {
-	background: linear-gradient(90deg, #e93323, #ff6a3d);
-	border-radius: 44rpx;
+
+.primary-btn {
+	margin-top: 8rpx;
 	height: 88rpx;
 	line-height: 88rpx;
-}
-.tabs {
-	display: flex;
-	margin: 0 24rpx;
-	background: #fff;
-	border-radius: 16rpx 16rpx 0 0;
-}
-.tab {
-	flex: 1;
-	text-align: center;
-	padding: 24rpx 0;
-	font-size: 28rpx;
-	color: #666;
-}
-.tab.on {
-	color: #e93323;
+	border-radius: 44rpx;
+	background: linear-gradient(90deg, #ff5a45, #e93323);
+	color: #fff;
+	font-size: 30rpx;
 	font-weight: 600;
-	border-bottom: 4rpx solid #e93323;
+	border: none;
 }
-.list {
-	margin: 0 24rpx;
-	background: #fff;
-	border-radius: 0 0 16rpx 16rpx;
-	padding: 0 24rpx 24rpx;
+.primary-btn.soft {
+	background: linear-gradient(90deg, #ff7a45, #f04a2f);
 }
-.line {
+.primary-btn[disabled] {
+	opacity: 0.45;
+}
+
+.address-panel {
+	margin-top: 0;
+}
+.bound {
+	background: #fafafa;
+	border-radius: 14rpx;
+	padding: 20rpx 22rpx;
+	margin-bottom: 16rpx;
+}
+.bound-label {
+	font-size: 22rpx;
+	color: #999;
+}
+.bound-val {
+	margin-top: 8rpx;
+	font-size: 26rpx;
+	color: #333;
+	word-break: break-all;
+}
+.bound-time {
+	margin-top: 8rpx;
+	font-size: 22rpx;
+	color: #aaa;
+}
+
+.record-panel {
+	padding-top: 20rpx;
+}
+.record-seg {
+	margin-bottom: 8rpx;
+}
+.record-list {
+	padding-top: 8rpx;
+}
+.record-item {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 24rpx 0;
-	border-bottom: 1px solid #f0f0f0;
+	padding: 26rpx 4rpx;
+	border-bottom: 1px solid #f2f3f5;
 }
-.state {
+.record-item:last-child {
+	border-bottom: none;
+}
+.record-title {
 	font-size: 28rpx;
-	color: #333;
+	color: #303133;
 }
-.time {
-	font-size: 22rpx;
-	color: #999;
+.record-time {
 	margin-top: 8rpx;
+	font-size: 22rpx;
+	color: #a8abb2;
 }
-.list .num {
-	font-size: 30rpx;
+.record-num {
+	font-size: 32rpx;
+	font-weight: 700;
+}
+.record-num.plus {
 	color: #e93323;
 }
-.empty,
-.loading-tip {
+.record-num.minus {
+	color: #303133;
+}
+.footer-tip {
 	text-align: center;
-	color: #999;
-	padding: 40rpx 0 20rpx;
-	font-size: 26rpx;
+	color: #a8abb2;
+	font-size: 24rpx;
+	padding: 28rpx 0 8rpx;
+}
+.footer-tip.empty {
+	padding: 56rpx 0 24rpx;
 }
 </style>

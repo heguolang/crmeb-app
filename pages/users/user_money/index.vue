@@ -9,7 +9,10 @@
 								<view>总资产(元)</view>
 								<view class='money'>{{statistics.nowMoney || 0}}</view>
 							</view>
-							<view v-if="userInfo.rechargeSwitch"  @click="openSubscribe('/pages/users/user_payment/index')" class='recharge font_color'>充值</view>
+							<view class='acea-row'>
+								<view class='recharge font_color' style="margin-right: 16rpx;" @click="openCash">提现</view>
+								<view v-if="userInfo.rechargeSwitch"  @click="openSubscribe('/pages/users/user_payment/index')" class='recharge font_color'>充值</view>
+							</view>
 					    </view>
 						<view class='cumulative acea-row row-top'>
 							<view class='item' v-if="userInfo.rechargeSwitch">
@@ -162,6 +165,11 @@
 			openSubscribe: function(page) {
 				uni.navigateTo({
 					url: page,
+				});
+			},
+			openCash: function() {
+				uni.navigateTo({
+					url: '/pages/users/user_cash/index?source=balance',
 				});
 			},
 			/**

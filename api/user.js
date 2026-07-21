@@ -519,8 +519,8 @@ export function getWarrantRecord(q) {
 /*
  * 立即提现 冻结期、冻结佣金、可提现佣金、最低可提现金额
  * */
-export function extractUser() {
-  return request.get("extract/user");
+export function extractUser(source) {
+  return request.get("extract/user", { source: source || 'brokerage' });
 }
 
 /*
