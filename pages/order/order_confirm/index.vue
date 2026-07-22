@@ -62,7 +62,7 @@
 					</view>
 
 					<view class='item acea-row row-between-wrapper'
-						v-if="!orderInfoVo.bargainId && !orderInfoVo.combinationId && !orderInfoVo.seckillId && productType==='normal'">
+						v-if="!orderInfoVo.bargainId && !orderInfoVo.combinationId && !orderInfoVo.seckillId && productType==='normal' && orderInfoVo.canUseIntegral">
 						<view>积分抵扣</view>
 						<view class='discount acea-row row-middle'>
 							<view> {{useIntegral ? "剩余积分":"当前积分"}}

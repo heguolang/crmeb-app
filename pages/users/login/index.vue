@@ -105,6 +105,12 @@
 						<input type="password" class="texts" placeholder="再次确认密码" maxlength="16" v-model="confirmPassword"/>
 					</div>
 				</div>
+				<div class="item">
+					<div class="acea-row row-middle">
+						<image :src="urlDomain+'crmebimage/perset/staticImg/phone_1.png'" style="width: 24rpx; height: 34rpx;"></image>
+						<input type="number" class="texts" placeholder="推荐人ID（选填）" v-model="spreadPid" maxlength="11"/>
+					</div>
+				</div>
 			</div>
 			<div class="logon bg_color" @click="register">注册并登录</div>
 			<div class="tips">
@@ -152,6 +158,7 @@
 				password: "",
 				confirmPassword: "",
 				captcha: "",
+				spreadPid: "",
 				formItem: 1,
 				type: "login",
 				keyCode: "",
@@ -181,6 +188,10 @@
 		},
 		onLoad() {
 			let self = this
+			const cacheSpread = this.$Cache.get("spread");
+			if (cacheSpread && Number(cacheSpread) > 0) {
+				this.spreadPid = String(cacheSpread);
+			}
 			uni.getSystemInfo({
 				success: function(res) {
 					if (res.platform.toLowerCase() == 'ios' && res.system.split(' ')[1] >= '13') {
@@ -429,6 +440,18 @@
 				if (that.password !== that.confirmPassword) return that.$util.Tips({
 					title: '两次密码输入不一致'
 				});
+				const inputSpread = String(that.spreadPid || '').trim();
+				let spreadSpid = 0;
+				if (inputSpread) {
+					if (!/^\d+$/.test(inputSpread) || Number(inputSpread) <= 0) {
+						return that.$util.Tips({
+							title: '请输入正确的推荐人ID'
+						});
+					}
+					spreadSpid = Number(inputSpread);
+				} else {
+					spreadSpid = Number(that.$Cache.get("spread") || 0) || 0;
+				}
 				uni.showLoading({
 					title: '注册中'
 				});
@@ -436,7 +459,7 @@
 						account: that.account,
 						captcha: that.captcha,
 						password: that.password,
-						spread_spid: that.$Cache.get("spread") || 0
+						spread_spid: spreadSpid
 					})
 					.then(res => {
 						uni.hideLoading();

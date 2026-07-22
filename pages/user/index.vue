@@ -21,8 +21,9 @@
 												</view>
 										</view>
 									</view>
-									<view class="num" v-if="userInfo && userInfo.phone && uid">
-										<view class="num-txt">{{userInfo.phone}}</view>
+									<view class="num" v-if="userInfo && uid">
+										<view class="num-txt" v-if="userInfo.phone">{{userInfo.phone}}</view>
+										<view class="num-txt uid-txt">ID: {{uid}}</view>
 										<view class="icon">
 											<image :src="urlDomain+'crmebimage/perset/staticImg/edit.png'" mode=""></image>
 										</view>
@@ -90,24 +91,25 @@
 							<view class="list-box">
 								<block v-for="(item,index) in MyMenus" :key="index">
 									<view class="item" @click="menusTap(item.url)"
-										v-if="!(item.url =='/pages/service/index' || (item.url =='/pages/promoter/user_spread_user/index' && !userInfo.isPromoter))">
+										v-if="!(item.url =='/pages/service/index' || item.name === '联系客服' || (item.url =='/pages/promoter/user_spread_user/index' && !userInfo.isPromoter))">
 										<image :src="item.pic"></image>
 										<text>{{item.name}}</text>
 									</view>
 								</block>
+								<!-- 暂时屏蔽：联系客服 -->
 								<!-- #ifndef MP -->
-								<view class="item" @click="onClickService">
+								<view class="item" @click="onClickService" v-if="showContactService">
 									<image :src="servicePic"></image>
 									<text>联系客服</text>
 								</view>
 								<!-- #endif -->
 								<!-- #ifdef MP -->
 								<!--  v-if="chatConfig.telephone_service_switch" -->
-								<button class="item" hover-class='none' @click="onClickService" v-if="chatConfig.telephone_service_switch === 'open'">
+								<button class="item" hover-class='none' @click="onClickService" v-if="showContactService && chatConfig.telephone_service_switch === 'open'">
 									<image :src="servicePic"></image>
 									<text>联系客服</text>
 								</button>
-								<template v-else>
+								<template v-else-if="showContactService">
 									<button class="item" open-type='contact' hover-class='none' v-if="chatConfig.wx_chant_independent==='open'">
 										<image :src="servicePic"></image>
 										<text>联系客服</text>
@@ -194,6 +196,7 @@
 					telephone_service_switch:'close',
 					wx_chant_independent:'open'
 				} ,//客服配置
+				showContactService: false, // 暂时屏蔽会员中心「联系客服」
 				userInfo: {},
 				copyImage: '',//版权图片
 			}
@@ -594,6 +597,10 @@
 							align-items: center;
 							font-size: 26rpx;
 							color: rgba(255, 255, 255, 0.6);
+
+							.uid-txt {
+								margin-left: 16rpx;
+							}
 
 							image {
 								width: 22rpx;
