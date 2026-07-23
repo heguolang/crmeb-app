@@ -55,6 +55,9 @@
 		getArticleBannerList,
 	} from '@/api/api.js';
 	import animationType from '@/utils/animationType.js'
+	import {
+		buildWechatShareLink
+	} from '@/utils/index.js'
 	let app = getApp();
 	export default {
 		data() {
@@ -190,7 +193,7 @@
 					], {
 						desc: this.articleList[0].title,
 						title: this.articleList[0].title,
-						link: location.href,
+						link: buildWechatShareLink(this.$store.getters.uid),
 						imgUrl:this.articleList[0].imageInput 
 					}).then(res => {
 					}).catch(err => {

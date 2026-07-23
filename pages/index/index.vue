@@ -171,6 +171,7 @@
 	} from "vuex";
 	import {
 		silenceBindingSpread,
+		buildWechatShareLink,
 	} from '@/utils/index.js';
 	import animationType from '@/utils/animationType.js'
 	import {
@@ -649,7 +650,7 @@
 					let configAppMessage = {
 						desc: data.synopsis,
 						title: data.title,
-						link: location.href,
+						link: buildWechatShareLink(that.uid),
 						imgUrl: data.img
 					};
 					that.$wechat.wechatEvevt(["updateAppMessageShareData", "updateTimelineShareData"],

@@ -59,6 +59,9 @@
 	import {
 		imageBase64
 	} from "@/api/public";
+	import {
+		buildWechatShareLink
+	} from '@/utils/index.js'
 	export default {
 		data() {
 			return {
@@ -209,7 +212,7 @@
 				// #endif
 				uQRCode.make({
 					canvasId: 'qrcode',
-					text: href + '/pages/index/index?spread=' + that.uid,
+					text: buildWechatShareLink(that.uid, href + '/pages/index/index'),
 					size: this.qrcodeSize,
 					margin: 10,
 					success: res => {
@@ -307,7 +310,7 @@
 					let configAppMessage = {
 						desc: '分销海报',
 						title: this.userInfo.nickname + '-分销海报',
-						link: '/pages/index/index?spread=' + this.uid,
+						link: buildWechatShareLink(this.uid, location.origin + '/pages/index/index'),
 						imgUrl: this.spreadList[0].pic
 					};
 					this.$wechat.wechatEvevt(["updateAppMessageShareData", "updateTimelineShareData"],

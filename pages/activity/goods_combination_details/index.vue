@@ -302,7 +302,7 @@
 	const app = getApp();
 	import uQRCode from '@/js_sdk/Sansnn-uQRCode/uqrcode.js'
 	import {mapGetters} from "vuex";
-	import { silenceBindingSpread } from "@/utils";
+	import { silenceBindingSpread, buildWechatShareLink } from "@/utils";
 	// #ifdef APP-PLUS
 	import {HTTP_H5_URL} from '@/config/app.js';
 	// #endif
@@ -542,7 +542,7 @@
 					provider: "weixin",
 					scene: scene,
 					type: 0,
-					href: `${HTTP_H5_URL}${curRoute}&spread=${that.uid}`,
+					href: buildWechatShareLink(that.uid, `${HTTP_H5_URL}${curRoute}`),
 					title: that.storeInfo.storeName,
 					summary: app.globalData.companyName,
 					imageUrl: that.storeInfo.image,
@@ -722,7 +722,7 @@
 					], {
 						desc: app.globalData.companyName,
 						title: this.storeInfo.storeName,
-						link: location.href,
+						link: buildWechatShareLink(this.uid),
 						imgUrl: this.storeInfo.image
 					}).then(res => {
 						
@@ -1134,7 +1134,7 @@
 			},
 			// 生成二维码；
 			make() {
-				let href = location.href.split('?')[0] + "?id="+ this.id + "&spread="  + this.uid;
+				let href = buildWechatShareLink(this.uid, location.href.split('?')[0] + "?id="+ this.id);
 				uQRCode.make({
 					canvasId: 'qrcode',
 					text: href,
@@ -1204,17 +1204,11 @@
 			// #endif
 			setShareInfoStatus: function() {
 				let data = this.storeInfo;
-				let href = location.href;
 				if (this.$wechat.isWeixin()) {
-					href =
-						href.indexOf("?") === -1 ?
-						href + "?spread=" + this.uid :
-						href + "&spread=" + this.uid;
-
 					let configAppMessage = {
 						desc: data.storeInfo,
 						title: data.storeName,
-						link: href,
+						link: buildWechatShareLink(this.uid),
 						imgUrl: data.image
 					};
 					this.$wechat.wechatEvevt(["updateAppMessageShareData", "updateTimelineShareData"],

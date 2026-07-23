@@ -203,6 +203,9 @@
 	import {
 		Debounce
 	} from '@/utils/validate.js'
+	import {
+		buildWechatShareLink
+	} from '@/utils/index.js'
 	let app = getApp();
 	export default {
 		components: {
@@ -267,7 +270,7 @@
 			};
 		},
 		
-		computed: mapGetters(['isLogin','bottomNavigationIsCustom']),
+		computed: mapGetters(['isLogin','uid','bottomNavigationIsCustom']),
 		onLoad: function(options) {
 			//检查token是否有效
 			this.getTokenIsExist();
@@ -967,7 +970,7 @@
 					let configAppMessage = {
 						desc: data.synopsis,
 						title: data.title,
-						link: location.href,
+						link: buildWechatShareLink(that.uid),
 						imgUrl: data.img
 					};
 					that.$wechat.wechatEvevt(["updateAppMessageShareData", "updateTimelineShareData"],

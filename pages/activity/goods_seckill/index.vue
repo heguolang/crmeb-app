@@ -77,6 +77,9 @@
 		getSeckillList
 	} from '../../../api/activity.js';
 	import animationType from '@/utils/animationType.js'
+	import {
+		buildWechatShareLink
+	} from '@/utils/index.js'
 	let app = getApp();
 	export default {
 		data() {
@@ -212,7 +215,7 @@
 					], {
 						desc: this.seckillList[0].title,
 						title: this.seckillList[0].title,
-						link: location.href,
+						link: buildWechatShareLink(this.$store.getters.uid),
 						imgUrl:this.seckillList[0].image 
 					}).then(res => {
 					}).catch(err => {

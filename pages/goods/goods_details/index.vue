@@ -373,7 +373,8 @@
 	import shareRedPackets from '@/components/shareRedPackets';
 	import cusPreviewImg from '@/components/cus-previewImg/cus-previewImg.vue'
 	import {
-		silenceBindingSpread
+		silenceBindingSpread,
+		buildWechatShareLink
 	} from "@/utils";
 	import parser from "@/components/jyf-parser/jyf-parser";
 	import {
@@ -696,7 +697,7 @@
 					provider: "weixin",
 					scene: scene,
 					type: 0,
-					href: `${HTTP_H5_URL}${curRoute}&spread=${that.uid}`,
+					href: buildWechatShareLink(that.uid, `${HTTP_H5_URL}${curRoute}`),
 					title: that.productInfo.storeName,
 					summary: app.globalData.companyName,
 					imageUrl: that.productInfo.image,
@@ -1424,7 +1425,7 @@
 			},
 			// 生成二维码；
 			make(uid) {
-				let href = location.href.split('?')[0] + "?id=" + this.id + "&spread=" + this.uid;
+				let href = buildWechatShareLink(this.uid, location.href.split('?')[0] + "?id=" + this.id);
 				uQRCode.make({
 					canvasId: 'qrcode',
 					text: href,
@@ -1563,13 +1564,11 @@
 			// #endif
 			ShareInfo() {
 				let data = this.productInfo;
-				let href = location.href;
 				if (this.$wechat.isWeixin()) {
-					href = href.indexOf("?") === -1 ? href + "?spread=" + this.uid : href + "&spread=" + this.uid;
 					let configAppMessage = {
 						desc: app.globalData.companyName,
 						title: data.storeName,
-						link: href,
+						link: buildWechatShareLink(this.uid),
 						imgUrl: data.image
 					};
 					this.$wechat.wechatEvevt([

@@ -9,6 +9,7 @@
 	import cate from './components/default_cate';
 	import {getShare} from '@/api/public.js';
 	import {mapGetters} from 'vuex';
+	import {buildWechatShareLink} from '@/utils/index.js';
 	const app = getApp();
 	export default {
 		data() {
@@ -101,7 +102,7 @@
 					let configAppMessage = {
 						desc: data.synopsis,
 						title: data.title,
-						link: location.href,
+						link: buildWechatShareLink(that.uid),
 						imgUrl: data.img
 					};
 					that.$wechat.wechatEvevt(["updateAppMessageShareData", "updateTimelineShareData"],

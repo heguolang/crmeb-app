@@ -13,6 +13,36 @@ import Cache from "@/utils/cache";
 import { getCity } from '@/api/api.js';
 
 /**
+ * 生成带推广人参数的微信分享链接（覆盖已有 spread，避免重复）
+ * @param {String|Number} spreadUid 推广人 uid
+ * @param {String} href 可选，默认当前页地址
+ * @returns {String}
+ */
+export function buildWechatShareLink(spreadUid, href) {
+	// #ifdef H5
+	let url = href || (typeof location !== 'undefined' ? location.href : '');
+	// #endif
+	// #ifndef H5
+	let url = href || '';
+	// #endif
+	const uid = parseInt(spreadUid, 10);
+	if (!url || !uid || Number.isNaN(uid) || uid <= 0) {
+		return url;
+	}
+	try {
+		const base = typeof location !== 'undefined' ? location.origin : undefined;
+		const u = new URL(url, base);
+		u.searchParams.set('spread', String(uid));
+		return u.toString();
+	} catch (e) {
+		if (/[?&]spread=/.test(url)) {
+			return url.replace(/([?&])spread=[^&]*/, `$1spread=${uid}`);
+		}
+		return url.indexOf('?') === -1 ? `${url}?spread=${uid}` : `${url}&spread=${uid}`;
+	}
+}
+
+/**
  * 静默授权绑定上下级，使用在已经登录后扫描了别人的推广二维码
  * @param {Object} puid
  */

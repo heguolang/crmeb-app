@@ -100,6 +100,9 @@
 		setThemeColor
 	} from '@/utils/setTheme.js'
 	import animationType from '@/utils/animationType.js'
+	import {
+		buildWechatShareLink
+	} from '@/utils/index.js'
 	let app = getApp();
 	export default {
 		data() {
@@ -235,7 +238,7 @@
 					], {
 						desc: this.combinationList[0].title,
 						title: this.combinationList[0].title,
-						link: location.href,
+						link: buildWechatShareLink(this.$store.getters.uid),
 						imgUrl: this.combinationList[0].image
 					}).then(res => {}).catch(err => {
 						console.log(err);

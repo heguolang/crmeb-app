@@ -142,7 +142,8 @@
 	import {toLogin} from '@/libs/login.js';
 	import {mapGetters} from "vuex";
 	import {
-		getCityList
+		getCityList,
+		buildWechatShareLink
 	} from "@/utils";
 	// #ifdef H5
 	import Auth from '@/libs/wechat';
@@ -475,7 +476,7 @@
 					let configAppMessage = {
 						desc: data.synopsis,
 						title: data.title,
-						link: location.href,
+						link: buildWechatShareLink(that.uid),
 						imgUrl: data.img
 					};
 					that.$wechat.wechatEvevt(["updateAppMessageShareData", "updateTimelineShareData"],

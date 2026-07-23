@@ -48,6 +48,9 @@
 	} from '@/api/store.js';
 	import shareInfo from '@/components/shareInfo';
 	import parser from "@/components/jyf-parser/jyf-parser";
+	import {
+		buildWechatShareLink
+	} from '@/utils/index.js'
 	let app = getApp();
 	export default {
 		components: {
@@ -138,11 +141,10 @@
 				this.shareInfoStatus = false
 			},
 			setShareInfo: function() {
-				let href = location.href;
 				let configAppMessage = {
 					desc: this.articleInfo.synopsis,
 					title: this.articleInfo.title,
-					link: href,
+					link: buildWechatShareLink(this.$store.getters.uid),
 					imgUrl: this.articleInfo.imageInput.length ? this.articleInfo.imageInput[0] : ""
 				};
 				this.$wechat.wechatEvevt(["updateAppMessageShareData", "updateTimelineShareData"], configAppMessage);

@@ -85,6 +85,9 @@
 		mapGetters
 	} from "vuex";
 	import animationType from '@/utils/animationType.js'
+	import {
+		buildWechatShareLink
+	} from '@/utils/index.js'
 	export default {
 		components: {
 			countDown
@@ -203,7 +206,8 @@
 				let page = e;
 				// #ifndef MP
 				uni.navigateTo({
-					animationType: animationType.type,					animationDuration: animationType.duration,
+					animationType: animationType.type,
+					animationDuration: animationType.duration,
 					url: page
 				});
 				// #endif
@@ -261,7 +265,7 @@
 					], {
 						desc: this.bargainList[0].title,
 						title: this.bargainList[0].title,
-						link: location.href,
+						link: buildWechatShareLink(this.uid),
 						imgUrl:this.bargainList[0].image 
 					}).then(res => {
 					}).catch(err => {
