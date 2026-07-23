@@ -13,6 +13,31 @@ import Cache from "@/utils/cache";
 import { getCity } from '@/api/api.js';
 
 /**
+ * 解析当前可分享的推广人 uid（vuex / 缓存 / 用户信息）
+ * @param {Object} vm 页面 this，可选
+ * @returns {Number}
+ */
+export function resolveShareUid(vm) {
+	let uid = 0;
+	if (vm) {
+		uid = parseInt(vm.uid, 10) || 0;
+		if (!uid && vm.$store && vm.$store.state && vm.$store.state.app) {
+			uid = parseInt(vm.$store.state.app.uid, 10) || 0;
+		}
+		if (!uid && vm.userInfo && vm.userInfo.uid) {
+			uid = parseInt(vm.userInfo.uid, 10) || 0;
+		}
+		if (!uid && vm.$Cache) {
+			uid = parseInt(vm.$Cache.get('UID'), 10) || 0;
+		}
+	}
+	if (!uid) {
+		uid = parseInt(Cache.get('UID'), 10) || 0;
+	}
+	return uid > 0 ? uid : 0;
+}
+
+/**
  * 生成带推广人参数的微信分享链接（覆盖已有 spread，避免重复）
  * @param {String|Number} spreadUid 推广人 uid
  * @param {String} href 可选，默认当前页地址
@@ -29,17 +54,19 @@ export function buildWechatShareLink(spreadUid, href) {
 	if (!url || !uid || Number.isNaN(uid) || uid <= 0) {
 		return url;
 	}
-	try {
-		const base = typeof location !== 'undefined' ? location.origin : undefined;
-		const u = new URL(url, base);
-		u.searchParams.set('spread', String(uid));
-		return u.toString();
-	} catch (e) {
-		if (/[?&]spread=/.test(url)) {
-			return url.replace(/([?&])spread=[^&]*/, `$1spread=${uid}`);
-		}
-		return url.indexOf('?') === -1 ? `${url}?spread=${uid}` : `${url}&spread=${uid}`;
+	// 去掉 hash，避免分享链异常
+	const hashIndex = url.indexOf('#');
+	if (hashIndex !== -1) {
+		url = url.slice(0, hashIndex);
 	}
+	// 去掉已有 spread
+	url = url
+		.replace(/([?&])spread=[^&]*/g, '$1')
+		.replace(/[?&]$/, '')
+		.replace(/\?&/, '?')
+		.replace(/\?$/, '');
+	const joiner = url.indexOf('?') === -1 ? '?' : '&';
+	return url + joiner + 'spread=' + uid;
 }
 
 /**

@@ -374,7 +374,8 @@
 	import cusPreviewImg from '@/components/cus-previewImg/cus-previewImg.vue'
 	import {
 		silenceBindingSpread,
-		buildWechatShareLink
+		buildWechatShareLink,
+		resolveShareUid
 	} from "@/utils";
 	import parser from "@/components/jyf-parser/jyf-parser";
 	import {
@@ -1565,10 +1566,13 @@
 			ShareInfo() {
 				let data = this.productInfo;
 				if (this.$wechat.isWeixin()) {
+					const uid = resolveShareUid(this);
+					const baseLink = (typeof location !== 'undefined' ? location.origin : '') +
+						'/pages/goods/goods_details/index?id=' + this.id;
 					let configAppMessage = {
 						desc: app.globalData.companyName,
 						title: data.storeName,
-						link: buildWechatShareLink(this.uid),
+						link: buildWechatShareLink(uid, baseLink),
 						imgUrl: data.image
 					};
 					this.$wechat.wechatEvevt([

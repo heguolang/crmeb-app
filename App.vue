@@ -1,6 +1,9 @@
 <script>
 	import {
-		checkLogin
+		checkLogin,
+		toLogin,
+		isLoginPage,
+		goLoginPage
 	} from "./libs/login";
 	import {
 		HTTP_REQUEST_URL
@@ -40,18 +43,28 @@
 			routinePhoneVerification: '', //小程序手机号校验类型（多选）1微信小程序验证 2短信验证
 			companyName: uni.getStorageSync('companyName') ? uni.getStorageSync('companyName') : '欢迎你', //公司名称
 			tokenIsExist: false, //登录是否失效 false 失效，true没失效
-			mobileLoginLogo: uni.getStorageSync('mobileLoginLogo') || `${Cache.get("imgHost")}crmebimage/perset/staticImg/logo2.png` //登录页logo
+			mobileLoginLogo: uni.getStorageSync('mobileLoginLogo') || `${Cache.get("imgHost")}crmebimage/perset/staticImg/logo2.png`, //登录页logo
+			forceLoginModalShown: false, // 未登录强制弹框是否已展示
+			forceLoginReady: false // token/登录配置是否已就绪
 		},
 		onLaunch: function(option) {
+			let that = this;
 			//获取登录配置
-			this.getLoginConfig();
+			const loginConfigReady = this.getLoginConfig();
 
 			//校验token是否有效,true为有效，false为无效
-			tokenIsExistApi().then(res => {
+			const tokenReady = tokenIsExistApi().then(res => {
 				this.globalData.tokenIsExist = res.data;
+				// token 失效但本地仍有登录态时清理
+				if (!res.data && that.$store.getters.isLogin) {
+					that.$store.commit('LOGOUT');
+				}
+				return res.data;
+			}).catch(() => {
+				this.globalData.tokenIsExist = false;
+				return false;
 			})
 
-			let that = this;
 			// #ifdef APP-PLUS || H5
 			uni.getSystemInfo({
 				success: function(res) {
@@ -141,70 +154,14 @@
 			} else {
 				this.globalData.isIframe = false;
 			}
-
-			// wx公众号自动授权登录
-			let snsapiBase = 'snsapi_base';
-			let urlData = location.pathname + location.search;
-			//publicLoginType，公众号登录方式(单选),1微信授权，2手机号登录
-			if (!that.$store.getters.isLogin && Auth.isWeixin() && this.globalData.publicLoginType == 1 && !that
-				.globalData.tokenIsExist) {
-				const {
-					code,
-					state,
-					scope
-				} = option.query;
-				if (code && code != uni.getStorageSync('snsapiCode') && location.pathname.indexOf(
-						'/pages/users/wechat_login/index') === -1) {
-					// 存储静默授权code
-					uni.setStorageSync('snsapiCode', code);
-					let spread = that.globalData.spread ? that.globalData.spread : 0;
-					Auth.auth(code, that.$Cache.get('SPREAD'))
-						.then(res => {
-							uni.setStorageSync('snRouter', decodeURIComponent(decodeURIComponent(option.query
-								.back_url)));
-							if (res.type === 'register') {
-								this.$Cache.set('snsapiKey', res.key);
-							}
-							if (res.type === 'login') {
-								this.$store.commit('LOGIN', {
-									token: res.token
-								});
-								this.$store.commit("SETUID", res.uid);
-								location.replace(decodeURIComponent(decodeURIComponent(option.query.back_url)));
-							}
-						})
-						.catch(error => {
-							if (!this.$Cache.has('snsapiKey')) {
-								if (location.pathname.indexOf('/pages/users/wechat_login/index') === -1) {
-									Auth.oAuth(snsapiBase, option.query.back_url);
-								}
-							}
-						});
-				} else {
-					if (!this.$Cache.has('snsapiKey')) {
-						if (location.pathname.indexOf('/pages/users/wechat_login/index') === -1) {
-							Auth.oAuth(snsapiBase, urlData);
-						}
-					}
-				}
-			} else {
-				if (option.query.back_url) {
-					location.replace(uni.getStorageSync('snRouter'));
-				}
-			}
 			// #endif
 
-			// #ifdef MP
-			// 小程序静默授权
-			if (!this.$store.getters.isLogin && !this.globalData.tokenIsExist) {
-				Routine.getCode().then(code => {
-						Routine.authUserInfo(code)
-					})
-					.catch(res => {
-						uni.hideLoading();
-					});
-			}
-			// #endif
+			// 任意端：未登录强制弹窗登录/注册
+			Promise.all([loginConfigReady, tokenReady]).then(() => {
+				that.globalData.forceLoginReady = true;
+				that.handleForceLogin(option || {});
+			});
+
 			// 主题变色
 			getTheme().then(resP => {
 				that.globalData.theme = `theme${Number(resP.data.value)}`
@@ -220,7 +177,7 @@
 		methods: {
 			//获取登录配置
 			getLoginConfig() {
-				loginConfigApi().then(res => {
+				return loginConfigApi().then(res => {
 					let data = res.data;
 					//公众号登录方式(单选),1微信授权，2手机号登录
 					this.globalData.publicLoginType = data.publicLoginType;
@@ -237,7 +194,138 @@
 					uni.setNavigationBarTitle({
 							title:data.siteName
 					});
+					return data;
+				}).catch(() => {
+					return null;
 				})
+			},
+			/**
+			 * 当前是否在登录/注册页
+			 */
+			isCurrentLoginPage() {
+				// #ifdef H5
+				const href = (location.pathname || '') + (location.hash || '');
+				return isLoginPage(href) || isLoginPage(location.pathname);
+				// #endif
+				// #ifndef H5
+				const pages = getCurrentPages();
+				const cur = pages[pages.length - 1];
+				if (!cur) return false;
+				const route = cur.route || '';
+				return isLoginPage('/' + route) || isLoginPage(route);
+				// #endif
+			},
+			/**
+			 * 任意端：授权回调处理 / 未登录强制弹框登录
+			 */
+			handleForceLogin(option) {
+				if (this.globalData.isIframe) return;
+
+				const query = (option && option.query) || {};
+
+				// #ifdef H5
+				// 微信公众号授权回调
+				if (Auth.isWeixin()) {
+					const onLoginPage = this.isCurrentLoginPage();
+					const {
+						code
+					} = query;
+					if (code && code != uni.getStorageSync('snsapiCode') && !onLoginPage) {
+						uni.setStorageSync('snsapiCode', code);
+						Auth.auth(code)
+							.then(res => {
+								uni.setStorageSync('snRouter', decodeURIComponent(decodeURIComponent(query.back_url || '')));
+								if (res.type === 'register') {
+									this.$Cache.set('snsapiKey', res.key);
+									uni.navigateTo({
+										url: '/pages/users/wechat_login/index'
+									});
+								}
+								if (res.type === 'login') {
+									this.$store.commit('LOGIN', {
+										token: res.token
+									});
+									this.$store.commit("SETUID", res.uid);
+									const backUrl = query.back_url
+										? decodeURIComponent(decodeURIComponent(query.back_url))
+										: (uni.getStorageSync('snRouter') || '/pages/index/index');
+									location.replace(backUrl);
+								}
+							})
+							.catch(() => {
+								this.showForceLoginModal();
+							});
+						return;
+					}
+
+					if (query.back_url && this.$store.getters.isLogin) {
+						location.replace(uni.getStorageSync('snRouter') || '/pages/index/index');
+						return;
+					}
+
+					if (this.$Cache.has('snsapiKey') && !this.$store.getters.isLogin && !this.globalData.tokenIsExist) {
+						uni.navigateTo({
+							url: '/pages/users/wechat_login/index'
+						});
+						return;
+					}
+				}
+				// #endif
+
+				// #ifdef MP
+				// 小程序：先尝试静默授权，失败再强制弹窗
+				if (!this.$store.getters.isLogin && !this.globalData.tokenIsExist) {
+					Routine.getCode().then(code => {
+						return Routine.authUserInfo(code);
+					}).catch(() => {
+						uni.hideLoading();
+					}).finally(() => {
+						this.checkAndForceLogin();
+					});
+					return;
+				}
+				// #endif
+
+				this.checkAndForceLogin();
+			},
+			/**
+			 * 检查未登录并强制弹窗
+			 */
+			checkAndForceLogin() {
+				if (this.globalData.isIframe) return;
+				if (!this.globalData.forceLoginReady) return;
+				if (this.$store.getters.isLogin || this.globalData.tokenIsExist) return;
+				if (this.isCurrentLoginPage()) return;
+				this.showForceLoginModal();
+			},
+			/**
+			 * 未登录强制弹框（不可取消）
+			 */
+			showForceLoginModal() {
+				if (this.globalData.isIframe) return;
+				if (this.globalData.forceLoginModalShown) return;
+				if (this.isCurrentLoginPage()) return;
+				this.globalData.forceLoginModalShown = true;
+				uni.showModal({
+					title: '登录提示',
+					content: '请先登录或注册后再使用商城功能',
+					showCancel: false,
+					confirmText: '去登录',
+					confirmColor: '#E93323',
+					success: (res) => {
+						this.globalData.forceLoginModalShown = false;
+						if (res.confirm) {
+							toLogin();
+						} else {
+							// 兜底：仍强制进入登录页
+							goLoginPage(true);
+						}
+					},
+					fail: () => {
+						this.globalData.forceLoginModalShown = false;
+						goLoginPage(true);
+					}
+				});
 			}
 		},
 		onShow: function() {
@@ -253,6 +341,8 @@
 				}
 			})
 			// #endif
+			// 回到前台 / 切页后仍未登录则再次强制
+			this.checkAndForceLogin();
 		},
 		onHide: function() {}
 	}

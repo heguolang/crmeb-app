@@ -153,7 +153,7 @@
 			return {
 				urlDomain: this.$Cache.get("imgHost"),
 				navList: ["快速登录", "账号登录"],
-				current: 1,
+				current: 0, // 默认账号密码登录；1为快速登录（验证码）
 				account: "",
 				password: "",
 				confirmPassword: "",

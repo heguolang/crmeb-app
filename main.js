@@ -84,4 +84,18 @@ const app = new Vue({
 	store,
 	Cache
 })
+
+// 任意页面显示时：未登录则强制弹窗登录/注册
+Vue.mixin({
+	onShow() {
+		try {
+			const g = getApp();
+			const vm = g && (g.$vm || g);
+			if (vm && typeof vm.checkAndForceLogin === 'function') {
+				vm.checkAndForceLogin();
+			}
+		} catch (e) {}
+	}
+});
+
 app.$mount();

@@ -26,11 +26,22 @@ const TAB_PAGES = [
 	'/pages/user/index'
 ];
 
-const LOGIN_PAGES = [
+export const LOGIN_PAGES = [
 	'/pages/users/login/index',
 	'/pages/users/wechat_login/index',
 	'/pages/users/app_login/index'
 ];
+
+/**
+ * 是否登录/注册相关页面
+ */
+export function isLoginPage(url) {
+	if (!url || typeof url !== 'string') return false;
+	const path = url.split('?')[0];
+	const normalized = path.indexOf('/') === 0 ? path : '/' + path;
+	return LOGIN_PAGES.indexOf(normalized) !== -1
+		|| LOGIN_PAGES.some(p => normalized.indexOf(p) !== -1);
+}
 
 function prePage(){
 	let pages = getCurrentPages();
@@ -99,13 +110,61 @@ export function toLoginBack(backUrl) {
 
 export const toLogin = Debounce(_toLogin,800)
 
+/**
+ * 跳转登录/注册页（强制，不可取消）
+ */
+export function goLoginPage(reLaunch) {
+	const go = reLaunch ? uni.reLaunch : uni.navigateTo;
+	const failGo = (url) => {
+		uni.reLaunch({
+			url,
+			fail: () => {
+				uni.navigateTo({ url });
+			}
+		});
+	};
+	// #ifdef H5
+	const publicLoginType = getApp().globalData.publicLoginType;
+	if (isWeixin() && publicLoginType == 1) {
+		if (Cache.has('snsapiKey')) {
+			go({
+				url: '/pages/users/wechat_login/index',
+				fail: () => failGo('/pages/users/wechat_login/index')
+			});
+			return;
+		}
+		let urlData = location.pathname + location.search;
+		if (urlData.indexOf('?') !== -1) {
+			urlData += '&go_longin=1';
+		} else {
+			urlData += '?go_longin=1';
+		}
+		auth.oAuth('snsapi_base', urlData);
+		return;
+	}
+	go({
+		url: '/pages/users/login/index',
+		fail: () => failGo('/pages/users/login/index')
+	});
+	// #endif
+	// #ifdef MP
+	go({
+		url: '/pages/users/wechat_login/index',
+		fail: () => failGo('/pages/users/wechat_login/index')
+	});
+	// #endif
+	// #ifdef APP-PLUS
+	go({
+		url: '/pages/users/login/index',
+		fail: () => failGo('/pages/users/login/index')
+	});
+	// #endif
+}
+
 export function _toLogin(push, pathLogin) {
 	// 公众号登录方式(单选),1微信授权，2手机号登录/
-	let publicLoginType = getApp().globalData.publicLoginType;
-	
 	store.commit("LOGOUT");
 	let path = prePage();
-	let login_back_url = Cache.get(BACK_URL);
 	// #ifdef H5
 	path = location.pathname + location.search;
 	// #endif
@@ -113,60 +172,10 @@ export function _toLogin(push, pathLogin) {
 		pathLogin = '/pages/users/login/index'
 	}
 	const pathOnly = (path || '').split('?')[0];
-	if (path && path !== pathLogin && LOGIN_PAGES.indexOf(pathOnly) === -1) {
+	if (path && path !== pathLogin && !isLoginPage(pathOnly)) {
 		Cache.set(BACK_URL, path);
 	}
-		
-	// #ifdef H5
-	if (isWeixin() && publicLoginType ==1) {
-		let urlData = location.pathname + location.search
-		if (urlData.indexOf('?') !== -1) {
-			urlData += '&go_longin=1';
-		} else {
-			urlData += '?go_longin=1';
-		}
-		if (!Cache.has('snsapiKey')) {
-			auth.oAuth('snsapi_base', urlData);
-		} else {
-			if (['/pages/user/index'].indexOf(login_back_url) == -1) {
-				uni.navigateTo({
-					url: '/pages/users/wechat_login/index'
-				})
-			}
-		}
-	} else {
-		if (['/pages/user/index'].indexOf(login_back_url) == -1) {
-			uni.navigateTo({
-				url: '/pages/users/login/index'
-			})
-		}
-	}
-	// #endif
-	
-	if (['pages/user/index','/pages/user/index'].indexOf(login_back_url) == -1) {
-		// #ifdef MP
-		uni.navigateTo({
-			 url: '/pages/users/wechat_login/index'
-		})
-		// #endif
-		// #ifdef APP-PLUS
-			uni.showModal({
-			    title: '登录提示',
-			    content: '登录以后可体验商城完整功能',
-				cancelColor: '#000000',
-				confirmColor: '#526BB1',
-			    success: function (res) {
-			        if (res.confirm) {
-			           uni.navigateTo({
-			           	url: '/pages/users/login/index'
-			           })
-			        } else if (res.cancel) {
-			            // console.log('用户点击取消');
-			        }
-			    }
-			});
-		// #endif
-	}
+	goLoginPage(false);
 }
 
 

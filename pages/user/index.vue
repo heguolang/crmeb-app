@@ -143,7 +143,8 @@
 	import {mapGetters} from "vuex";
 	import {
 		getCityList,
-		buildWechatShareLink
+		buildWechatShareLink,
+		resolveShareUid
 	} from "@/utils";
 	// #ifdef H5
 	import Auth from '@/libs/wechat';
@@ -274,6 +275,10 @@
 						this.getOrderData();
 						this.$store.dispatch('USERINFO').then(res => {
 							this.userInfo = res;
+							// #ifdef H5
+							// 登录态就绪后再挂分享，确保带上 spread
+							this.shareApi();
+							// #endif
 						});
 					}else{
 						this.$store.commit("LOGOUT");
@@ -469,18 +474,22 @@
 					// #endif
 				})
 			},
-			// 微信分享；
+			// 微信分享；个人中心统一分享到首页并带上推广人，避免只分享当前页导致无 spread
 			setOpenShare: function(data) {
 				let that = this;
 				if (that.$wechat.isWeixin()) {
+					const uid = resolveShareUid(that);
+					const baseLink = (typeof location !== 'undefined' ? location.origin : '') + '/pages/index/index';
 					let configAppMessage = {
 						desc: data.synopsis,
 						title: data.title,
-						link: buildWechatShareLink(that.uid),
+						link: buildWechatShareLink(uid, baseLink),
 						imgUrl: data.img
 					};
 					that.$wechat.wechatEvevt(["updateAppMessageShareData", "updateTimelineShareData"],
-						configAppMessage);
+						configAppMessage).catch(err => {
+						console.log('微信分享配置失败', err, configAppMessage.link);
+					});
 				}
 			}
 		}

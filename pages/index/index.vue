@@ -172,6 +172,7 @@
 	import {
 		silenceBindingSpread,
 		buildWechatShareLink,
+		resolveShareUid,
 	} from '@/utils/index.js';
 	import animationType from '@/utils/animationType.js'
 	import {
@@ -647,14 +648,18 @@
 			setOpenShare: function(data) {
 				let that = this;
 				if (that.$wechat.isWeixin()) {
+					const uid = resolveShareUid(that);
+					const baseLink = (typeof location !== 'undefined' ? location.origin : '') + '/pages/index/index';
 					let configAppMessage = {
 						desc: data.synopsis,
 						title: data.title,
-						link: buildWechatShareLink(that.uid),
+						link: buildWechatShareLink(uid, baseLink),
 						imgUrl: data.img
 					};
 					that.$wechat.wechatEvevt(["updateAppMessageShareData", "updateTimelineShareData"],
-						configAppMessage);
+						configAppMessage).catch(err => {
+						console.log('微信分享配置失败', err, configAppMessage.link);
+					});
 				}
 			},
 			stopTouchMove() {
