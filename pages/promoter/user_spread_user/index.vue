@@ -34,7 +34,7 @@
 				</navigator>
 				<navigator url='/pages/promoter/promoter-list/index' hover-class="none" class='item acea-row row-center-wrapper row-column'>
 					<text class='iconfont icon-tongji'></text>
-					<view>推广人统计</view>
+					<view>我的朋友</view>
 				</navigator>
 				<navigator :url="'/pages/promoter/user_spread_money/index?type=2&commissionCount='+spreadInfo.commissionCount" hover-class="none" class='item acea-row row-center-wrapper row-column'>
 					<text class='iconfont icon-qiandai'></text>
@@ -42,19 +42,11 @@
 				</navigator>
 				<navigator url='/pages/promoter/user_spread_money/index?type=3' hover-class="none" class='item acea-row row-center-wrapper row-column'>
 					<text class='iconfont icon-tuandui'></text>
-					<view>团队奖记录</view>
+					<view>社群奖记录</view>
 				</navigator>
 				<navigator url='/pages/promoter/promoter-order/index' hover-class="none" class='item acea-row row-center-wrapper row-column'>
 					<text class='iconfont icon-dingdan'></text>
-					<view>推广人订单</view>
-				</navigator>
-				<navigator url='/pages/promoter/promoter_rank/index' hover-class="none" class='item acea-row row-center-wrapper row-column'>
-					<text class='iconfont icon-paihang1'></text>
-					<view>推广人排行</view>
-				</navigator>
-				<navigator url='/pages/promoter/commission_rank/index' hover-class="none" class='item acea-row row-center-wrapper row-column'>
-					<text class='iconfont icon-paihang'></text>
-					<view>佣金排行</view>
+					<view>分享的订单</view>
 				</navigator>
 			</view>
 		</view>

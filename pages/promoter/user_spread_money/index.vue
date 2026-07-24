@@ -51,9 +51,9 @@
 													class="brokerage-tag"
 													:class="getBrokerageLevelClass(child.brokerageLevel)"
 												>{{ getBrokerageLevelLabel(child.brokerageLevel) }}</text>
-												<text class="record-title">{{ child.title }}</text>
+												<text class="record-title">{{ formatBrokerageDisplayText(child.title) }}</text>
 											</view>
-											<view class="record-mark" v-if="recordType == 5 && child.mark">{{ child.mark }}</view>
+											<view class="record-mark" v-if="recordType == 5 && child.mark">{{ formatBrokerageDisplayText(child.mark) }}</view>
 											<view class="record-time">
 												{{ child.updateTime }}
 												<text v-if="recordType == 5 && getStatusLabel(child.status)" class="status-text"> · {{ getStatusLabel(child.status) }}</text>
@@ -69,7 +69,7 @@
 					</view>
 				</block>
 				<view v-if="recordList.length == 0">
-					<emptyPage :title="recordType == 5 ? '暂无团队奖记录~' : '暂无佣金记录~'"></emptyPage>
+					<emptyPage :title="recordType == 5 ? '暂无社群奖记录~' : '暂无佣金记录~'"></emptyPage>
 				</view>
 			</view>
 		</view>
@@ -91,7 +91,7 @@
 	} from "vuex";
 	import emptyPage from '@/components/emptyPage.vue'
 	import {setThemeColor} from '@/utils/setTheme.js'
-	import { getBrokerageLevelLabel, getBrokerageLevelClass } from '@/utils/brokerage.js'
+	import { getBrokerageLevelLabel, getBrokerageLevelClass, formatBrokerageDisplayText } from '@/utils/brokerage.js'
 	const app = getApp();
 	export default {
 		components: {
@@ -159,9 +159,9 @@
 				this.getRecordList();
 			} else if (type == 3) {
 				uni.setNavigationBarTitle({
-					title: "团队奖记录"
+					title: "社群奖记录"
 				});
-				this.name = '团队奖累计';
+				this.name = '社群奖累计';
 				this.recordType = 5;
 				this.loadTeamTotal();
 				this.getTeamRecordList();
@@ -191,6 +191,7 @@
 		methods: {
 			getBrokerageLevelLabel,
 			getBrokerageLevelClass,
+			formatBrokerageDisplayText,
 			getStatusLabel(status) {
 				const map = {
 					1: '待入账',

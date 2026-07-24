@@ -801,7 +801,7 @@
 				{
 					"path": "promoter-list/index",
 					"style": {
-						"navigationBarTitleText": "推广人列表",
+						"navigationBarTitleText": "我的朋友",
 						"app-plus": {
 							// #ifdef APP-PLUS
 							"titleNView": {
@@ -814,7 +814,7 @@
 				{
 					"path": "promoter-order/index",
 					"style": {
-						"navigationBarTitleText": "推广人订单",
+						"navigationBarTitleText": "分享的订单",
 						"app-plus": {
 							// #ifdef APP-PLUS
 							"titleNView": {
